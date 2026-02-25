@@ -1,0 +1,180 @@
+Q1Kqr7i8Izw0VbY7
+
+// =========================
+// ELEMENTOS DEL DOM
+// =========================
+
+const coinDisplay = document.getElementById("coin-count");
+const availableDisplay = document.getElementById("available-coins");
+
+const addButton = document.getElementById("add-coin");
+const removeButton = document.getElementById("remove-coin");
+
+const usernameInput = document.getElementById("username");
+const historyDiv = document.getElementById("history");
+
+// =========================
+// HISTORIAL
+// =========================
+
+let history = JSON.parse(localStorage.getItem("history")) || [];
+
+// Guardar nombre automáticamente
+usernameInput.value = localStorage.getItem("username") || "";
+
+usernameInput.addEventListener("input", () => {
+  localStorage.setItem("username", usernameInput.value);
+});
+
+// =========================
+// INICIALIZAR MONEDAS TOTALES
+// =========================
+
+let storedCoins = localStorage.getItem("pusheenCoins");
+let coins;
+
+if (storedCoins === null) {
+  coins = 100;
+  localStorage.setItem("pusheenCoins", coins);
+} else {
+  coins = parseInt(storedCoins);
+}
+
+// =========================
+// INICIALIZAR MONEDAS DISPONIBLES
+// =========================
+
+let storedAvailable = localStorage.getItem("availableCoins");
+let availableCoins;
+
+if (storedAvailable === null) {
+  availableCoins = 2;
+  localStorage.setItem("availableCoins", availableCoins);
+} else {
+  availableCoins = parseInt(storedAvailable);
+}
+
+let lastUpdate = localStorage.getItem("lastUpdate");
+
+// =========================
+// FUNCION PARA SUMAR 2 POR DIA
+// =========================
+
+function updateDailyCoins() {
+
+  const today = new Date().toDateString();
+
+  if (lastUpdate !== today) {
+
+    const lastDate = lastUpdate ? new Date(lastUpdate) : new Date();
+    const currentDate = new Date(today);
+
+    const diffTime = currentDate - lastDate;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays > 0) {
+      availableCoins += diffDays * 2;
+      localStorage.setItem("availableCoins", availableCoins);
+    }
+
+    lastUpdate = today;
+    localStorage.setItem("lastUpdate", lastUpdate);
+  }
+}
+
+// =========================
+// FUNCION RENDER HISTORIAL
+// =========================
+
+function renderHistory() {
+
+  historyDiv.innerHTML = "<h3>Historial</h3>";
+
+  history.slice(-10).reverse().forEach(entry => {
+    const p = document.createElement("p");
+    p.textContent = entry;
+    historyDiv.appendChild(p);
+  });
+
+}
+
+// =========================
+// EJECUTAR AL CARGAR
+// =========================
+
+updateDailyCoins();
+
+coinDisplay.textContent = coins;
+availableDisplay.textContent = availableCoins;
+
+renderHistory();
+
+// =========================
+// BOTON DAR MONEDA
+// =========================
+
+addButton.addEventListener("click", () => {
+
+  const username = usernameInput.value.trim();
+
+  if (username === "") {
+    alert("Escribe tu nombre primero 😾");
+    return;
+  }
+
+  if (availableCoins > 0) {
+
+    coins++;
+    availableCoins--;
+
+    const entry = `${username} dio una moneda 🪙 - ${new Date().toLocaleString()}`;
+    history.push(entry);
+
+    localStorage.setItem("history", JSON.stringify(history));
+    localStorage.setItem("pusheenCoins", coins);
+    localStorage.setItem("availableCoins", availableCoins);
+
+    coinDisplay.textContent = coins;
+    availableDisplay.textContent = availableCoins;
+
+    renderHistory();
+
+  } else {
+    alert("No tienes monedas disponibles hoy 😿");
+  }
+
+});
+
+// =========================
+// BOTON QUITAR MONEDA
+// =========================
+
+removeButton.addEventListener("click", () => {
+
+  const username = usernameInput.value.trim();
+
+  if (username === "") {
+    alert("Escribe tu nombre primero 😾");
+    return;
+  }
+
+  if (coins > 0) {
+
+    coins--;
+    availableCoins++;
+
+    const entry = `${username} quitó una moneda ❌ - ${new Date().toLocaleString()}`;
+    history.push(entry);
+
+    localStorage.setItem("history", JSON.stringify(history));
+    localStorage.setItem("pusheenCoins", coins);
+    localStorage.setItem("availableCoins", availableCoins);
+
+    coinDisplay.textContent = coins;
+    availableDisplay.textContent = availableCoins;
+
+    renderHistory();
+
+  }
+
+});

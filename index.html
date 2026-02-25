@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Pusheen Bank 🪙</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="available-container">
+    Monedas disponibles: <span id="available-coins">0</span> 🪙
+  </div>
+
+  <h1>Pusheen Bank 🐾</h1>
+
+  <div class="card">
+    <p>Monedas acumuladas:</p>
+    <h2 id="coin-count">0</h2>
+
+    <img src="pusheen.png" alt="Pusheen" class="pusheen-img">
+
+    <input type="text" id="username" placeholder="Tu nombre">
+
+    <button id="add-coin">Dar moneda 🪙</button>
+    <button id="remove-coin">Quitar moneda ❌</button>
+
+    <div id="history"></div>
+  </div>
+
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js'
+
+  const supabaseUrl = 'https://erblqbqsjqhatarcpzjs.supabase.co'
+  const supabaseKey = 'sb_publishable_hqp5-27VsAh8eUKZoonUeg_KtTMjr99'
+
+  const supabase = createClient(supabaseUrl, supabaseKey)
+
+  window.supabase = supabase
+</script>
+
+<script type="module" src="script.js"></script>
+
+</body>
+</html>
