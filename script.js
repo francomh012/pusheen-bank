@@ -15,24 +15,31 @@ const historyDiv = document.getElementById("history");
 const playerText = document.getElementById("current-player");
 
 // ==========================
-// INICIO Y TIEMPO REAL
+// INICIO Y LOGUEO
 // ==========================
 async function loadData(name) {
     currentPlayer = name;
     
-    // Cargar datos iniciales
-    const { data: userData } = await supabase.from("players").select("*").eq("username", name).maybeSingle();
+    // Cargar datos del jugador
+    let { data: userData } = await supabase.from("players").select("*").eq("username", name).maybeSingle();
     
     if (!userData) {
-        await supabase.from("players").insert([{ username: name, wallet_coins: 100 }]);
         myWallet = 100;
+        await supabase.from("players").insert([{ 
+            username: name, 
+            wallet_coins: 100, 
+            last_claim: new Date().toISOString().split('T')[0] 
+        }]);
     } else {
         myWallet = userData.wallet_coins;
+        // RECOMPENSA DIARIA
+        await checkDailyReward(userData);
     }
 
+    // Cargar datos del banco
     await refreshSharedData();
     
-    // ACTIVAR TIEMPO REAL: Escuchar cambios en las tablas
+    // ACTIVAR TIEMPO REAL
     supabase
         .channel('schema-db-changes')
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bank' }, (payload) => {
@@ -51,14 +58,34 @@ async function loadData(name) {
     renderUI();
 }
 
+// ==========================
+// LÓGICA DE RECOMPENSA DIARIA
+// ==========================
+async function checkDailyReward(user) {
+    const hoy = new Date().toISOString().split('T')[0];
+    
+    if (user.last_claim !== hoy) {
+        myWallet += 2;
+        alert(`¡Hola ${currentPlayer}! 🐾 Has recibido tus 2 monedas diarias.`);
+        
+        await supabase.from("players")
+            .update({ wallet_coins: myWallet, last_claim: hoy })
+            .eq("username", currentPlayer);
+            
+        renderUI();
+    }
+}
+
 async function refreshSharedData() {
     let { data: bankData } = await supabase.from("bank").select("*").eq("id", 1).single();
-    sharedBank = bankData.total_coins;
-    sharedHistory = bankData.history || [];
+    if (bankData) {
+        sharedBank = bankData.total_coins;
+        sharedHistory = bankData.history || [];
+    }
 }
 
 // ==========================
-// ACCIONES (GUARDAR DATOS)
+// ACCIONES (DAR / QUITAR)
 // ==========================
 async function handleCoin(action) {
     let newWallet = myWallet;
@@ -77,23 +104,20 @@ async function handleCoin(action) {
         newHistory.push(`${currentPlayer} quitó 1 moneda ❌`);
     }
 
-    // Actualizamos localmente para que se sienta rápido
+    // Optimismo UI (actualizar antes de la DB para que se sienta rápido)
     myWallet = newWallet;
     sharedBank = newBank;
     sharedHistory = newHistory;
     renderUI();
 
-    // Guardamos en Supabase
-    const { error: err1 } = await supabase.from("players").update({ wallet_coins: newWallet }).eq("username", currentPlayer);
-    const { error: err2 } = await supabase.from("bank").update({ total_coins: newBank, history: newHistory }).eq("id", 1);
-    
-    if (err1 || err2) console.error("Error al guardar:", err1 || err2);
+    await supabase.from("players").update({ wallet_coins: newWallet }).eq("username", currentPlayer);
+    await supabase.from("bank").update({ total_coins: newBank, history: newHistory }).eq("id", 1);
 }
 
 function renderUI() {
     coinDisplay.textContent = sharedBank;
     walletDisplay.textContent = myWallet;
-    playerText.textContent = `Sesión: ${currentPlayer}`;
+    playerText.textContent = `Jugador: ${currentPlayer}`;
     
     historyDiv.innerHTML = "<h3>Historial en Vivo 🐾</h3>";
     [...sharedHistory].reverse().slice(0, 8).forEach(msg => {
@@ -103,7 +127,7 @@ function renderUI() {
     });
 }
 
-// Eventos de botones
+// Eventos
 document.getElementById("franco-btn").onclick = () => loadData("Franco");
 document.getElementById("jess-btn").onclick = () => loadData("Jess");
 document.getElementById("add-coin").onclick = () => handleCoin('add');
