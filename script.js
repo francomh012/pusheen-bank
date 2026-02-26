@@ -8,6 +8,7 @@ let currentPlayer = null;
 let myWallet = 0;
 let sharedBank = 0;
 let sharedHistory = [];
+let isSaving = false; // Variable para evitar clics dobles
 
 const coinDisplay = document.getElementById("coin-count");
 const walletDisplay = document.getElementById("available-coins");
@@ -37,7 +38,7 @@ async function loadData(name) {
 
     await refreshSharedData();
     
-    // TIEMPO REAL ACTUALIZADO (Escucha el banco y el ranking)
+    // TIEMPO REAL: Escucha el banco y el ranking
     supabase
         .channel('schema-db-changes')
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bank' }, (payload) => {
@@ -46,7 +47,6 @@ async function loadData(name) {
             renderUI();
         })
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'players' }, () => {
-            // Si cualquier jugador cambia, actualizamos el ranking para todos
             updateRankingUI();
         })
         .subscribe();
@@ -55,7 +55,7 @@ async function loadData(name) {
     document.getElementById("game-screen").style.display = "block";
     
     renderUI();
-    updateRankingUI(); // Cargamos el ranking al entrar
+    updateRankingUI();
 }
 
 // ==========================
@@ -81,10 +81,15 @@ async function updateRankingUI() {
 }
 
 // ==========================
-// ACCIONES
+// ACCIONES (DAR / QUITAR)
 // ==========================
 async function handleCoin(action) {
+    if (isSaving) return;
+
     let donationChange = 0;
+    const oldWallet = myWallet;
+    const oldBank = sharedBank;
+    const oldHistory = [...sharedHistory];
 
     if (action === 'add') {
         if (myWallet <= 0) return alert("¡No tienes monedas!");
@@ -97,27 +102,50 @@ async function handleCoin(action) {
         myWallet++;
         sharedBank--;
         donationChange = -1;
-        sharedHistory.push(`${currentPlayer} quitó 1 moneda ❌`);
+        sharedHistory.push(`${currentPlayer} robó 1 moneda ❌`);
     }
 
     renderUI();
+    isSaving = true;
 
-    // 1. Obtener donaciones actuales para sumar
-    const { data } = await supabase.from("players").select("weekly_donations").eq("username", currentPlayer).single();
-    const newWeeklyTotal = (data.weekly_donations || 0) + donationChange;
+    try {
+        const { data: userData, error: fetchError } = await supabase
+            .from("players")
+            .select("weekly_donations")
+            .eq("username", currentPlayer)
+            .single();
 
-    // 2. Guardar en Supabase
-    await supabase.from("players").update({ 
-        wallet_coins: myWallet, 
-        weekly_donations: Math.max(0, newWeeklyTotal) 
-    }).eq("username", currentPlayer);
+        if (fetchError) throw fetchError;
 
-    await supabase.from("bank").update({ 
-        total_coins: sharedBank, 
-        history: sharedHistory 
-    }).eq("id", 1);
-    
-    updateRankingUI();
+        const newWeeklyTotal = Math.max(0, (userData.weekly_donations || 0) + donationChange);
+
+        const updates = [
+            supabase.from("players").update({ 
+                wallet_coins: myWallet, 
+                weekly_donations: newWeeklyTotal 
+            }).eq("username", currentPlayer),
+            
+            supabase.from("bank").update({ 
+                total_coins: sharedBank, 
+                history: sharedHistory 
+            }).eq("id", 1)
+        ];
+
+        const results = await Promise.all(updates);
+        if (results.some(r => r.error)) throw new Error("Error en la DB");
+
+        updateRankingUI();
+
+    } catch (error) {
+        console.error("Error al guardar, revirtiendo...", error);
+        myWallet = oldWallet;
+        sharedBank = oldBank;
+        sharedHistory = oldHistory;
+        renderUI();
+        alert("Error de conexión. Se han restaurado tus monedas.");
+    } finally {
+        isSaving = false;
+    }
 }
 
 // ==========================
