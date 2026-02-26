@@ -1,105 +1,109 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-// ⚠️ SUSTITUYE ESTO CON TUS DATOS REALES DE SUPABASE
 const supabaseUrl = 'https://erblqbqsjqhatarcpzjs.supabase.co';
 const supabaseKey = 'sb_publishable_hqp5-27VsAh8eUKZoonUeg_KtTMjr99';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Variables de estado
 let currentPlayer = null;
-let myWallet = 0;       // Monedas personales
-let sharedBank = 0;     // Monedas en Pusheen (Compartido)
-let sharedHistory = []; // Historial (Compartido)
+let myWallet = 0;
+let sharedBank = 0;
+let sharedHistory = [];
 
-// Elementos UI
 const coinDisplay = document.getElementById("coin-count");
 const walletDisplay = document.getElementById("available-coins");
 const historyDiv = document.getElementById("history");
 const playerText = document.getElementById("current-player");
 
 // ==========================
-// CARGAR DATOS (PERSONAL + COMPARTIDO)
+// INICIO Y TIEMPO REAL
 // ==========================
 async function loadData(name) {
     currentPlayer = name;
     
-    // 1. Cargar mi billetera personal
-    let { data: userData } = await supabase
-        .from("players")
-        .select("*")
-        .eq("username", name)
-        .maybeSingle();
-
+    // Cargar datos iniciales
+    const { data: userData } = await supabase.from("players").select("*").eq("username", name).maybeSingle();
+    
     if (!userData) {
-        // Si el usuario no existe, lo creamos
         await supabase.from("players").insert([{ username: name, wallet_coins: 100 }]);
         myWallet = 100;
     } else {
         myWallet = userData.wallet_coins;
     }
 
-    // 2. Cargar el banco y el historial compartido
     await refreshSharedData();
+    
+    // ACTIVAR TIEMPO REAL: Escuchar cambios en las tablas
+    supabase
+        .channel('schema-db-changes')
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bank' }, (payload) => {
+            sharedBank = payload.new.total_coins;
+            sharedHistory = payload.new.history;
+            renderUI();
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'players', filter: `username=eq.${currentPlayer}` }, (payload) => {
+            myWallet = payload.new.wallet_coins;
+            renderUI();
+        })
+        .subscribe();
 
-    // Mostrar pantalla de juego
     document.getElementById("login-screen").style.display = "none";
     document.getElementById("game-screen").style.display = "block";
     renderUI();
 }
 
 async function refreshSharedData() {
-    let { data: bankData } = await supabase
-        .from("bank")
-        .select("*")
-        .eq("id", 1)
-        .single();
-    
+    let { data: bankData } = await supabase.from("bank").select("*").eq("id", 1).single();
     sharedBank = bankData.total_coins;
     sharedHistory = bankData.history || [];
 }
 
 // ==========================
-// LÓGICA DE MONEDAS
+// ACCIONES (GUARDAR DATOS)
 // ==========================
 async function handleCoin(action) {
+    let newWallet = myWallet;
+    let newBank = sharedBank;
+    let newHistory = [...sharedHistory];
+
     if (action === 'add') {
-        if (myWallet <= 0) return alert("¡No tienes monedas personales!");
-        myWallet--;
-        sharedBank++;
-        sharedHistory.push(`${currentPlayer} depositó 1 moneda 🪙`);
+        if (myWallet <= 0) return alert("¡No tienes monedas!");
+        newWallet--;
+        newBank++;
+        newHistory.push(`${currentPlayer} dio 1 moneda 🪙`);
     } else {
         if (sharedBank <= 0) return alert("¡Pusheen no tiene monedas!");
-        myWallet++;
-        sharedBank--;
-        sharedHistory.push(`${currentPlayer} retiró 1 moneda ❌`);
+        newWallet++;
+        newBank--;
+        newHistory.push(`${currentPlayer} quitó 1 moneda ❌`);
     }
 
+    // Actualizamos localmente para que se sienta rápido
+    myWallet = newWallet;
+    sharedBank = newBank;
+    sharedHistory = newHistory;
     renderUI();
 
-    // Guardar en Supabase (Ambas tablas)
-    await Promise.all([
-        supabase.from("players").update({ wallet_coins: myWallet }).eq("username", currentPlayer),
-        supabase.from("bank").update({ total_coins: sharedBank, history: sharedHistory }).eq("id", 1)
-    ]);
+    // Guardamos en Supabase
+    const { error: err1 } = await supabase.from("players").update({ wallet_coins: newWallet }).eq("username", currentPlayer);
+    const { error: err2 } = await supabase.from("bank").update({ total_coins: newBank, history: newHistory }).eq("id", 1);
+    
+    if (err1 || err2) console.error("Error al guardar:", err1 || err2);
 }
 
-// ==========================
-// RENDERIZADO
-// ==========================
 function renderUI() {
     coinDisplay.textContent = sharedBank;
     walletDisplay.textContent = myWallet;
-    playerText.textContent = `Jugador: ${currentPlayer}`;
+    playerText.textContent = `Sesión: ${currentPlayer}`;
     
-    historyDiv.innerHTML = "<h3>Historial Compartido</h3>";
-    [...sharedHistory].reverse().slice(0, 7).forEach(msg => {
+    historyDiv.innerHTML = "<h3>Historial en Vivo 🐾</h3>";
+    [...sharedHistory].reverse().slice(0, 8).forEach(msg => {
         const p = document.createElement("p");
         p.textContent = msg;
         historyDiv.appendChild(p);
     });
 }
 
-// Eventos
+// Eventos de botones
 document.getElementById("franco-btn").onclick = () => loadData("Franco");
 document.getElementById("jess-btn").onclick = () => loadData("Jess");
 document.getElementById("add-coin").onclick = () => handleCoin('add');
