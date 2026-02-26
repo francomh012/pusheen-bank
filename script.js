@@ -5,168 +5,103 @@ const supabaseUrl = 'https://erblqbqsjqhatarcpzjs.supabase.co';
 const supabaseKey = 'sb_publishable_hqp5-27VsAh8eUKZoonUeg_KtTMjr99';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const coinDisplay = document.getElementById("coin-count");
-const availableDisplay = document.getElementById("available-coins");
-const addButton = document.getElementById("add-coin");
-const removeButton = document.getElementById("remove-coin");
-const historyDiv = document.getElementById("history");
-const currentPlayerText = document.getElementById("current-player");
-const loginScreen = document.getElementById("login-screen");
-const gameScreen = document.getElementById("game-screen");
-
-const francoBtn = document.getElementById("franco-btn");
-const jessBtn = document.getElementById("jess-btn");
-
+// Variables de estado
 let currentPlayer = null;
-let playerCoins = 0;
-let bankCoins = 0;
-let available = 0;
-let history = [];
+let myWallet = 0;       // Monedas personales
+let sharedBank = 0;     // Monedas en Pusheen (Compartido)
+let sharedHistory = []; // Historial (Compartido)
+
+// Elementos UI
+const coinDisplay = document.getElementById("coin-count");
+const walletDisplay = document.getElementById("available-coins");
+const historyDiv = document.getElementById("history");
+const playerText = document.getElementById("current-player");
 
 // ==========================
-// CARGAR JUGADOR
+// CARGAR DATOS (PERSONAL + COMPARTIDO)
 // ==========================
-async function loadPlayer(name) {
-    console.log("Intentando cargar jugador:", name);
-    try {
-        currentPlayer = name;
+async function loadData(name) {
+    currentPlayer = name;
+    
+    // 1. Cargar mi billetera personal
+    let { data: userData } = await supabase
+        .from("players")
+        .select("*")
+        .eq("username", name)
+        .maybeSingle();
 
-        // Intentar obtener los datos del jugador
-        const { data, error } = await supabase
-            .from("players")
-            .select("*")
-            .eq("username", name)
-            .maybeSingle(); // Usamos maybeSingle para que no explote si no hay datos
-
-        if (error) throw error;
-
-        if (!data) {
-            console.log("Creando jugador nuevo...");
-            playerCoins = 100;
-            const { error: insertError } = await supabase
-                .from("players")
-                .insert([{ username: name, coins: playerCoins }]);
-            if (insertError) throw insertError;
-        } else {
-            playerCoins = data.coins;
-        }
-
-        // Si todo sale bien, cambiamos de pantalla
-        loginScreen.style.display = "none";
-        gameScreen.style.display = "block";
-        
-        await loadBank();
-        renderUI();
-
-    } catch (err) {
-        console.error("Error al cargar jugador:", err.message);
-        alert("Hubo un error al conectar con la base de datos. Revisa la consola.");
+    if (!userData) {
+        // Si el usuario no existe, lo creamos
+        await supabase.from("players").insert([{ username: name, wallet_coins: 100 }]);
+        myWallet = 100;
+    } else {
+        myWallet = userData.wallet_coins;
     }
+
+    // 2. Cargar el banco y el historial compartido
+    await refreshSharedData();
+
+    // Mostrar pantalla de juego
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("game-screen").style.display = "block";
+    renderUI();
+}
+
+async function refreshSharedData() {
+    let { data: bankData } = await supabase
+        .from("bank")
+        .select("*")
+        .eq("id", 1)
+        .single();
+    
+    sharedBank = bankData.total_coins;
+    sharedHistory = bankData.history || [];
 }
 
 // ==========================
-// CARGAR BANCO GLOBAL
+// LÓGICA DE MONEDAS
 // ==========================
-async function loadBank() {
-    try {
-        let { data, error } = await supabase
-            .from("bank")
-            .select("*")
-            .eq("id", 1)
-            .maybeSingle();
-
-        if (error) throw error;
-
-        if (!data) {
-            console.log("Inicializando banco...");
-            const initialBank = { id: 1, coins: 0, available: 100, history: [] };
-            await supabase.from("bank").insert([initialBank]);
-            bankCoins = 0;
-            available = 100;
-            history = [];
-        } else {
-            bankCoins = data.coins;
-            available = data.available;
-            history = data.history || [];
-        }
-    } catch (err) {
-        console.error("Error al cargar el banco:", err.message);
+async function handleCoin(action) {
+    if (action === 'add') {
+        if (myWallet <= 0) return alert("¡No tienes monedas personales!");
+        myWallet--;
+        sharedBank++;
+        sharedHistory.push(`${currentPlayer} depositó 1 moneda 🪙`);
+    } else {
+        if (sharedBank <= 0) return alert("¡Pusheen no tiene monedas!");
+        myWallet++;
+        sharedBank--;
+        sharedHistory.push(`${currentPlayer} retiró 1 moneda ❌`);
     }
+
+    renderUI();
+
+    // Guardar en Supabase (Ambas tablas)
+    await Promise.all([
+        supabase.from("players").update({ wallet_coins: myWallet }).eq("username", currentPlayer),
+        supabase.from("bank").update({ total_coins: sharedBank, history: sharedHistory }).eq("id", 1)
+    ]);
 }
 
 // ==========================
-// ACTUALIZAR DATOS
-// ==========================
-async function updateData() {
-    try {
-        // Actualizar Banco
-        await supabase
-            .from("bank")
-            .update({ coins: bankCoins, available: available, history: history })
-            .eq("id", 1);
-
-        // Actualizar Jugador
-        await supabase
-            .from("players")
-            .update({ coins: playerCoins })
-            .eq("username", currentPlayer);
-            
-    } catch (err) {
-        console.error("Error al guardar:", err.message);
-    }
-}
-
-// ==========================
-// UI
+// RENDERIZADO
 // ==========================
 function renderUI() {
-    coinDisplay.textContent = bankCoins;
-    availableDisplay.textContent = available;
-    currentPlayerText.textContent = `Jugador: ${currentPlayer} | Tus monedas: ${playerCoins} 🪙`;
-
-    historyDiv.innerHTML = "<h3>Historial</h3>";
-    // Mostramos los últimos 5 movimientos
-    [...history].reverse().slice(0, 5).forEach(entry => {
+    coinDisplay.textContent = sharedBank;
+    walletDisplay.textContent = myWallet;
+    playerText.textContent = `Jugador: ${currentPlayer}`;
+    
+    historyDiv.innerHTML = "<h3>Historial Compartido</h3>";
+    [...sharedHistory].reverse().slice(0, 7).forEach(msg => {
         const p = document.createElement("p");
-        p.textContent = entry;
-        p.style.fontSize = "0.9rem";
-        p.style.color = "#555";
+        p.textContent = msg;
         historyDiv.appendChild(p);
     });
 }
 
-// ==========================
-// EVENTOS
-// ==========================
-francoBtn.addEventListener("click", () => loadPlayer("Franco"));
-jessBtn.addEventListener("click", () => loadPlayer("Jess"));
-
-addButton.addEventListener("click", async () => {
-    if (playerCoins > 0 && available > 0) {
-        playerCoins--;
-        bankCoins++;
-        available--;
-        history.push(`${currentPlayer} dio una moneda 🪙`);
-        renderUI();
-        await updateData();
-    } else {
-        alert("¡No tienes monedas o el banco está lleno!");
-    }
-});
-
-removeButton.addEventListener("click", async () => {
-    if (bankCoins > 0) {
-        playerCoins++;
-        bankCoins--;
-        available++;
-        history.push(`${currentPlayer} quitó una moneda ❌`);
-        renderUI();
-        await updateData();
-    } else {
-        alert("¡No hay monedas para quitar!");
-    }
-});
-
-document.getElementById("logout-btn").addEventListener("click", () => {
-    location.reload(); // La forma más limpia de resetear el estado
-});
+// Eventos
+document.getElementById("franco-btn").onclick = () => loadData("Franco");
+document.getElementById("jess-btn").onclick = () => loadData("Jess");
+document.getElementById("add-coin").onclick = () => handleCoin('add');
+document.getElementById("remove-coin").onclick = () => handleCoin('remove');
+document.getElementById("logout-btn").onclick = () => location.reload();
