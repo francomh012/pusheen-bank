@@ -101,7 +101,7 @@ async function handleCoin(action) {
         if (sharedBank <= 0) return alert("¡Pusheen no tiene monedas!");
         newWallet++;
         newBank--;
-        newHistory.push(`${currentPlayer} robó 1 moneda ❌`);
+        newHistory.push(`${currentPlayer} quitó 1 moneda ❌`);
     }
 
     // Optimismo UI (actualizar antes de la DB para que se sienta rápido)
