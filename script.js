@@ -1,40 +1,39 @@
-const playerInfo = document.getElementById("player-info");
-
-addButton.style.display = "none";
-removeButton.style.display = "none";
 const supabase = window.supabase;
 
+// Pantallas
+const loginScreen = document.getElementById("login-screen");
+const gameScreen = document.getElementById("game-screen");
+
+// Login
+const usernameInput = document.getElementById("username");
+const passwordInput = document.getElementById("password");
+const loginBtn = document.getElementById("login-btn");
+const registerBtn = document.getElementById("register-btn");
+const loginMessage = document.getElementById("login-message");
+
+// Juego
 const coinDisplay = document.getElementById("coin-count");
 const availableDisplay = document.getElementById("available-coins");
 const addButton = document.getElementById("add-coin");
 const removeButton = document.getElementById("remove-coin");
-const usernameInput = document.getElementById("username");
-const passwordInput = document.getElementById("password");
-const loginBtn = document.getElementById("login-btn");
+const logoutBtn = document.getElementById("logout-btn");
+const playerInfo = document.getElementById("player-info");
 const historyDiv = document.getElementById("history");
 
 let player = null;
 let playerCoins = 0;
-
 let bankCoins = 0;
 let available = 0;
 let history = [];
 
-// ======================
-// LOGIN / CREAR JUGADOR
-// ======================
+// ================= LOGIN =================
 
-playerInfo.textContent = `Jugador: ${player.username} | Monedas: ${playerCoins} 🪙`;
-
-addButton.style.display = "inline-block";
-removeButton.style.display = "inline-block";
-
-async function login() {
+registerBtn.addEventListener("click", async () => {
   const username = usernameInput.value.trim();
   const password = passwordInput.value.trim();
 
   if (!username || !password) {
-    alert("Pon usuario y contraseña 😼");
+    loginMessage.textContent = "Completa todo 😼";
     return;
   }
 
@@ -45,39 +44,50 @@ async function login() {
     .single();
 
   if (data) {
-    if (data.password !== password) {
-      alert("Contraseña incorrecta ❌");
-      return;
-    }
-
-    player = data;
-    playerCoins = data.coins;
-  } else {
-    const { data: newPlayer } = await supabase
-      .from("players")
-      .insert([{ username, password, coins: 0 }])
-      .select()
-      .single();
-
-    player = newPlayer;
-    playerCoins = 0;
+    loginMessage.textContent = "Ese usuario ya existe ❌";
+    return;
   }
 
-  alert(`Bienvenido ${player.username} 🐾`);
-  loadBank();
-}
+  await supabase.from("players").insert([
+    { username, password, coins: 5 } // empiezan con 5 monedas
+  ]);
 
-loginBtn.addEventListener("click", login);
-
-passwordInput.addEventListener("keypress", function(e) {
-  if (e.key === "Enter") {
-    login();
-  }
+  loginMessage.textContent = "Perfil creado ✅ Ahora inicia sesión";
 });
 
-// ======================
-// CARGAR BANCO GLOBAL
-// ======================
+loginBtn.addEventListener("click", async () => {
+  const username = usernameInput.value.trim();
+  const password = passwordInput.value.trim();
+
+  const { data } = await supabase
+    .from("players")
+    .select("*")
+    .eq("username", username)
+    .single();
+
+  if (!data || data.password !== password) {
+    loginMessage.textContent = "Datos incorrectos ❌";
+    return;
+  }
+
+  player = data;
+  playerCoins = data.coins;
+
+  loginScreen.style.display = "none";
+  gameScreen.style.display = "block";
+
+  loadBank();
+});
+
+// ================= LOGOUT =================
+
+logoutBtn.addEventListener("click", () => {
+  player = null;
+  loginScreen.style.display = "block";
+  gameScreen.style.display = "none";
+});
+
+// ================= BANCO =================
 
 async function loadBank() {
   const { data } = await supabase
@@ -90,15 +100,8 @@ async function loadBank() {
   available = data.available;
   history = data.history || [];
 
-  coinDisplay.textContent = bankCoins;
-  availableDisplay.textContent = available;
-
-  renderHistory();
+  updateUI();
 }
-
-// ======================
-// ACTUALIZAR BANK
-// ======================
 
 async function updateBank() {
   await supabase
@@ -111,10 +114,6 @@ async function updateBank() {
     .eq("id", 1);
 }
 
-// ======================
-// ACTUALIZAR PLAYER
-// ======================
-
 async function updatePlayer() {
   await supabase
     .from("players")
@@ -122,13 +121,12 @@ async function updatePlayer() {
     .eq("id", player.id);
 }
 
-// ======================
-// HISTORIAL
-// ======================
+function updateUI() {
+  coinDisplay.textContent = bankCoins;
+  availableDisplay.textContent = available;
+  playerInfo.textContent = `Jugador: ${player.username} | Tus monedas: ${playerCoins} 🪙`;
 
-function renderHistory() {
   historyDiv.innerHTML = "<h3>Historial</h3>";
-
   history.slice(-10).reverse().forEach(entry => {
     const p = document.createElement("p");
     p.textContent = entry;
@@ -136,44 +134,32 @@ function renderHistory() {
   });
 }
 
-// ======================
-// DAR MONEDA
-// ======================
+// ================= BOTONES =================
 
 addButton.addEventListener("click", async () => {
-  if (!player) return alert("Primero inicia sesión 😼");
-
   if (playerCoins > 0) {
     playerCoins--;
     bankCoins++;
     available--;
 
-    history.push(`${player.username} dio una moneda 🪙 - ${new Date().toLocaleString()}`);
+    history.push(`${player.username} dio una moneda 🪙`);
 
     await updatePlayer();
     await updateBank();
-    loadBank();
-  } else {
-    alert("No tienes monedas personales 😿");
+    updateUI();
   }
 });
 
-// ======================
-// QUITAR MONEDA
-// ======================
-
 removeButton.addEventListener("click", async () => {
-  if (!player) return alert("Primero inicia sesión 😼");
-
   if (bankCoins > 0) {
     playerCoins++;
     bankCoins--;
     available++;
 
-    history.push(`${player.username} quitó una moneda ❌ - ${new Date().toLocaleString()}`);
+    history.push(`${player.username} quitó una moneda ❌`);
 
     await updatePlayer();
     await updateBank();
-    loadBank();
+    updateUI();
   }
 });
