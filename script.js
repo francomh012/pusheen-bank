@@ -1,8 +1,8 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
 // ⚠️ SUSTITUYE ESTO CON TUS DATOS REALES DE SUPABASE
-const supabaseUrl = 'TU_SUPABASE_URL';
-const supabaseKey = 'TU_SUPABASE_KEY';
+const supabaseUrl = 'https://erblqbqsjqhatarcpzjs.supabase.co';
+const supabaseKey = 'sb_publishable_hqp5-27VsAh8eUKZoonUeg_KtTMjr99';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const coinDisplay = document.getElementById("coin-count");
