@@ -9,6 +9,7 @@
 <body>
 
 <div id="login-screen" class="card">
+  <h2>¿Quién eres? 🐾</h2>
   <div id="profile-selector">
     <button id="franco-btn">Franco</button>
     <button id="jess-btn">Jess</button>
@@ -18,32 +19,47 @@
 
 <div id="game-screen" style="display:none;">
   <div class="available-container">
-    Monedas Pusheen: <span id="available-coins">0</span> 🪙
+    Mis Monedas: <span id="available-coins">0</span> 🪙
   </div>
 
-  <h1>Pusheen 🐾</h1>
+  <h1>Pusheen Bank 🐾</h1>
 
-  <div class="card">
-    <p id="player-info"></p>
-
+  <div class="card main-controls">
     <p>Monedas de Pusheen:</p>
     <h2 id="coin-count">0</h2>
+    <img src="pusheen.png" class="pusheen-img" id="pusheen-avatar">
 
-    <img src="pusheen.png" class="pusheen-img">
+    <div class="input-group">
+      <button class="btn-small" onclick="handleCoin('add', 1)">+1</button>
+      <input type="number" id="custom-val" placeholder="Cant.">
+      <button class="btn-small btn-red" onclick="handleCoin('remove', 1)">-1</button>
+    </div>
 
-    <button id="add-coin">Dar moneda 🪙</button>
-    <button id="remove-coin">Robar moneda ❌</button>
-
-    <button id="logout-btn">Cerrar sesión</button>
-
-    <div id="history"></div>
+    <div class="main-actions">
+      <button onclick="handleCustom('add')">Dar monedas 🪙</button>
+      <button onclick="handleCustom('remove')" class="btn-red">Robar monedas ❌</button>
+    </div>
+    
+    <button id="logout-btn" class="logout">Cerrar sesión</button>
   </div>
+
+  <div id="shop" class="card">
+    <h3>🏪 Tienda de Accesorios</h3>
+    <div class="shop-grid">
+      <div class="item-locked">🎩 Sombrero (50 🪙)</div>
+      <div class="item-locked">🍕 Pizza (30 🪙)</div>
+    </div>
+  </div>
+
   <div id="ranking" class="card">
     <h3>🏆 Ranking Semanal</h3>
-    <div id="ranking-list">
-    <p>Cargando posiciones... 🐾</p>
+    <div id="ranking-list"></div>
   </div>
-</div>
+
+  <div class="card">
+    <h3>Historial 🐾</h3>
+    <div id="history"></div>
+  </div>
 </div>
 
 <script type="module" src="script.js"></script>

@@ -3,8 +3,7 @@ body {
   background: #fce4ec;
   text-align: center;
   margin: 0;
-  padding: 20px;
-  /* Evita que el navegador gestione zooms raros en móviles */
+  padding: 10px;
   touch-action: manipulation; 
 }
 
@@ -12,73 +11,69 @@ body {
   background: white;
   padding: 20px;
   border-radius: 20px;
-  display: block; /* Ocupa el ancho disponible */
-  max-width: 400px; /* Pero no más de 400px */
-  margin: 20px auto;
+  max-width: 400px;
+  margin: 15px auto;
   box-shadow: 0 5px 15px rgba(0,0,0,0.1);
   box-sizing: border-box;
 }
 
 button {
-  padding: 15px 25px; /* Botones más grandes para el dedo */
-  font-size: 18px;
+  padding: 15px;
+  font-size: 16px;
   border: none;
   border-radius: 50px;
   background: #ff80ab;
   color: white;
   cursor: pointer;
-  margin: 10px 5px;
-  width: 80%; /* Botones casi a lo ancho en móvil */
-  max-width: 250px;
+  margin: 5px;
+  width: 90%;
   transition: transform 0.1s;
 }
 
-/* Evita el zoom al hacer click rápido en móvil */
-button:active {
-  transform: scale(0.95);
+button:active { transform: scale(0.95); }
+button:disabled { opacity: 0.6; }
+
+.btn-small {
+  width: 50px !important;
+  height: 50px !important;
+  padding: 0 !important;
+  border-radius: 15px !important;
 }
 
-.pusheen-img {
-  width: 80%;
-  max-width: 180px;
-  height: auto;
-  margin: 10px auto;
+.btn-red { background: #ef9a9a !important; }
+
+.input-group {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin: 15px 0;
 }
+
+input[type="number"] {
+  width: 70px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 2px solid #ff80ab;
+  text-align: center;
+  font-size: 18px;
+}
+
+.pusheen-img { width: 60%; max-width: 150px; margin: 10px auto; }
 
 .available-container {
-  position: static; /* En móvil es mejor que no flote arriba a la derecha */
-  margin-bottom: 20px;
-  font-weight: bold;
   background: #fff;
-  padding: 10px;
-  border-radius: 10px;
-  display: inline-block;
-}
-
-#history {
-  max-height: 200px;
-  overflow-y: auto;
-  font-size: 14px;
-  text-align: left;
-  padding: 10px;
-}
-
-#ranking {
-  margin-top: 20px;
-  background: #fff9f0; /* Un color crema suave */
-  border: 2px solid #ffccbc;
-}
-
-#ranking-list p {
+  padding: 10px 20px;
+  border-radius: 50px;
   font-weight: bold;
-  font-size: 1.1rem;
-  margin: 10px 0;
-  color: #d81b60;
+  display: inline-block;
+  margin-top: 10px;
+  border: 2px solid #ff80ab;
 }
 
-.first-place { color: #fbc02d !important; font-size: 1.3rem !important; } /* Color oro */
+#history { max-height: 150px; overflow-y: auto; text-align: left; font-size: 14px; }
 
-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
+.shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; opacity: 0.5; }
+.item-locked { background: #eee; padding: 10px; border-radius: 10px; border: 1px dashed #999; font-size: 12px; }
+
+.logout { background: #bbb; font-size: 12px; padding: 8px; width: 50%; margin-top: 20px; }
