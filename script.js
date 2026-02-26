@@ -20,7 +20,6 @@ const playerText = document.getElementById("current-player");
 async function loadData(name) {
     currentPlayer = name;
     
-    // Cargar datos del jugador
     let { data: userData } = await supabase.from("players").select("*").eq("username", name).maybeSingle();
     
     if (!userData) {
@@ -28,18 +27,17 @@ async function loadData(name) {
         await supabase.from("players").insert([{ 
             username: name, 
             wallet_coins: 100, 
-            last_claim: new Date().toISOString().split('T')[0] 
+            last_claim: new Date().toISOString().split('T')[0],
+            weekly_donations: 0
         }]);
     } else {
         myWallet = userData.wallet_coins;
-        // RECOMPENSA DIARIA
         await checkDailyReward(userData);
     }
 
-    // Cargar datos del banco
     await refreshSharedData();
     
-    // ACTIVAR TIEMPO REAL
+    // TIEMPO REAL ACTUALIZADO (Escucha el banco y el ranking)
     supabase
         .channel('schema-db-changes')
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bank' }, (payload) => {
@@ -47,31 +45,92 @@ async function loadData(name) {
             sharedHistory = payload.new.history;
             renderUI();
         })
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'players', filter: `username=eq.${currentPlayer}` }, (payload) => {
-            myWallet = payload.new.wallet_coins;
-            renderUI();
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'players' }, () => {
+            // Si cualquier jugador cambia, actualizamos el ranking para todos
+            updateRankingUI();
         })
         .subscribe();
 
     document.getElementById("login-screen").style.display = "none";
     document.getElementById("game-screen").style.display = "block";
+    
     renderUI();
+    updateRankingUI(); // Cargamos el ranking al entrar
 }
 
 // ==========================
-// LÓGICA DE RECOMPENSA DIARIA
+// RANKING UI
+// ==========================
+async function updateRankingUI() {
+    const rankingList = document.getElementById("ranking-list");
+    const { data: rankings, error } = await supabase
+        .from("players")
+        .select("username, weekly_donations")
+        .order("weekly_donations", { ascending: false });
+
+    if (error) return console.error(error);
+
+    rankingList.innerHTML = "";
+    rankings.forEach((player, index) => {
+        const p = document.createElement("p");
+        const medal = index === 0 ? "👑" : "🐾";
+        if (index === 0) p.className = "first-place";
+        p.textContent = `${medal} ${player.username}: ${player.weekly_donations} monedas`;
+        rankingList.appendChild(p);
+    });
+}
+
+// ==========================
+// ACCIONES
+// ==========================
+async function handleCoin(action) {
+    let donationChange = 0;
+
+    if (action === 'add') {
+        if (myWallet <= 0) return alert("¡No tienes monedas!");
+        myWallet--;
+        sharedBank++;
+        donationChange = 1;
+        sharedHistory.push(`${currentPlayer} dio 1 moneda 🪙`);
+    } else {
+        if (sharedBank <= 0) return alert("¡Pusheen no tiene monedas!");
+        myWallet++;
+        sharedBank--;
+        donationChange = -1;
+        sharedHistory.push(`${currentPlayer} quitó 1 moneda ❌`);
+    }
+
+    renderUI();
+
+    // 1. Obtener donaciones actuales para sumar
+    const { data } = await supabase.from("players").select("weekly_donations").eq("username", currentPlayer).single();
+    const newWeeklyTotal = (data.weekly_donations || 0) + donationChange;
+
+    // 2. Guardar en Supabase
+    await supabase.from("players").update({ 
+        wallet_coins: myWallet, 
+        weekly_donations: Math.max(0, newWeeklyTotal) 
+    }).eq("username", currentPlayer);
+
+    await supabase.from("bank").update({ 
+        total_coins: sharedBank, 
+        history: sharedHistory 
+    }).eq("id", 1);
+    
+    updateRankingUI();
+}
+
+// ==========================
+// RECOMPENSA DIARIA
 // ==========================
 async function checkDailyReward(user) {
     const hoy = new Date().toISOString().split('T')[0];
-    
     if (user.last_claim !== hoy) {
         myWallet += 2;
         alert(`¡Hola ${currentPlayer}! 🐾 Has recibido tus 2 monedas diarias.`);
-        
         await supabase.from("players")
             .update({ wallet_coins: myWallet, last_claim: hoy })
             .eq("username", currentPlayer);
-            
         renderUI();
     }
 }
@@ -84,42 +143,11 @@ async function refreshSharedData() {
     }
 }
 
-// ==========================
-// ACCIONES (DAR / QUITAR)
-// ==========================
-async function handleCoin(action) {
-    let newWallet = myWallet;
-    let newBank = sharedBank;
-    let newHistory = [...sharedHistory];
-
-    if (action === 'add') {
-        if (myWallet <= 0) return alert("¡No tienes monedas!");
-        newWallet--;
-        newBank++;
-        newHistory.push(`${currentPlayer} dio 1 moneda 🪙`);
-    } else {
-        if (sharedBank <= 0) return alert("¡Pusheen no tiene monedas!");
-        newWallet++;
-        newBank--;
-        newHistory.push(`${currentPlayer} robó 1 moneda ❌`);
-    }
-
-    // Optimismo UI (actualizar antes de la DB para que se sienta rápido)
-    myWallet = newWallet;
-    sharedBank = newBank;
-    sharedHistory = newHistory;
-    renderUI();
-
-    await supabase.from("players").update({ wallet_coins: newWallet }).eq("username", currentPlayer);
-    await supabase.from("bank").update({ total_coins: newBank, history: newHistory }).eq("id", 1);
-}
-
 function renderUI() {
     coinDisplay.textContent = sharedBank;
     walletDisplay.textContent = myWallet;
-    playerText.textContent = `Jugador: ${currentPlayer}`;
-    
-    historyDiv.innerHTML = "<h3>Historial en Vivo 🐾</h3>";
+    playerText.textContent = `Sesión: ${currentPlayer}`;
+    historyDiv.innerHTML = "<h3>Historial de Monedas 🐾</h3>";
     [...sharedHistory].reverse().slice(0, 8).forEach(msg => {
         const p = document.createElement("p");
         p.textContent = msg;

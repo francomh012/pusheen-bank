@@ -62,3 +62,18 @@ button:active {
   text-align: left;
   padding: 10px;
 }
+
+#ranking {
+  margin-top: 20px;
+  background: #fff9f0; /* Un color crema suave */
+  border: 2px solid #ffccbc;
+}
+
+#ranking-list p {
+  font-weight: bold;
+  font-size: 1.1rem;
+  margin: 10px 0;
+  color: #d81b60;
+}
+
+.first-place { color: #fbc02d !important; font-size: 1.3rem !important; } /* Color oro */
