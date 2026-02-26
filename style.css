@@ -1,79 +1,121 @@
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: #fce4ec;
-  text-align: center;
+  text-align: center; /* Centra todo el contenido */
   margin: 0;
-  padding: 10px;
+  padding: 15px;
   touch-action: manipulation; 
 }
 
 .card {
   background: white;
   padding: 20px;
-  border-radius: 20px;
+  border-radius: 25px;
   max-width: 400px;
   margin: 15px auto;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
   box-sizing: border-box;
 }
 
+/* Botones principales */
 button {
-  padding: 15px;
+  padding: 15px 20px;
   font-size: 16px;
+  font-weight: bold;
   border: none;
   border-radius: 50px;
   background: #ff80ab;
   color: white;
   cursor: pointer;
-  margin: 5px;
-  width: 90%;
-  transition: transform 0.1s;
+  margin: 8px auto;
+  display: block;
+  width: 85%;
+  transition: all 0.2s;
 }
 
 button:active { transform: scale(0.95); }
-button:disabled { opacity: 0.6; }
+button:disabled { opacity: 0.5; }
 
+/* Botones pequeños de la fila (+1 / -1) */
 .btn-small {
-  width: 50px !important;
-  height: 50px !important;
-  padding: 0 !important;
-  border-radius: 15px !important;
+  width: 55px !important;
+  height: 55px !important;
+  display: inline-flex !important;
+  justify-content: center;
+  align-items: center;
+  border-radius: 18px !important;
+  font-size: 18px !important;
 }
 
 .btn-red { background: #ef9a9a !important; }
 
+/* Grupo de Input */
 .input-group {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 10px;
-  margin: 15px 0;
+  gap: 15px;
+  margin: 20px 0;
 }
 
 input[type="number"] {
-  width: 70px;
-  padding: 10px;
-  border-radius: 12px;
+  width: 80px;
+  padding: 12px;
+  border-radius: 15px;
   border: 2px solid #ff80ab;
   text-align: center;
-  font-size: 18px;
+  font-size: 20px;
+  color: #d81b60;
+  outline: none;
 }
 
-.pusheen-img { width: 60%; max-width: 150px; margin: 10px auto; }
+/* Ranking con los colores que te gustaban */
+#ranking {
+  background: #fff9f0; /* Crema */
+  border: 2px solid #ffccbc;
+}
 
+#ranking h3 { color: #d81b60; margin-top: 0; }
+
+#ranking-list p {
+  font-weight: bold;
+  font-size: 1.2rem;
+  margin: 12px 0;
+  color: #d81b60;
+  text-align: center; /* Centrado de nombres */
+}
+
+/* Primer lugar dorado */
+.first-place { 
+  color: #fbc02d !important; 
+  font-size: 1.4rem !important; 
+  text-shadow: 1px 1px 0px rgba(0,0,0,0.1);
+}
+
+/* Historial Centrado */
+#history {
+  margin-top: 10px;
+  font-size: 15px;
+  color: #555;
+  text-align: center; /* Centrado de mensajes */
+}
+
+#history p {
+  margin: 5px 0;
+  padding: 5px;
+  border-bottom: 1px solid #fce4ec;
+}
+
+/* Contenedor de billetera */
 .available-container {
-  background: #fff;
-  padding: 10px 20px;
+  background: white;
+  padding: 12px 25px;
   border-radius: 50px;
   font-weight: bold;
   display: inline-block;
-  margin-top: 10px;
-  border: 2px solid #ff80ab;
+  margin: 10px 0;
+  border: 3px solid #ff80ab;
+  color: #ad1457;
 }
 
-#history { max-height: 150px; overflow-y: auto; text-align: left; font-size: 14px; }
-
-.shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; opacity: 0.5; }
-.item-locked { background: #eee; padding: 10px; border-radius: 10px; border: 1px dashed #999; font-size: 12px; }
-
-.logout { background: #bbb; font-size: 12px; padding: 8px; width: 50%; margin-top: 20px; }
+.pusheen-img { width: 70%; max-width: 180px; margin: 15px auto; display: block; }

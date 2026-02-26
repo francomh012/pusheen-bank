@@ -13,10 +13,74 @@ let isSaving = false;
 const coinDisplay = document.getElementById("coin-count");
 const walletDisplay = document.getElementById("available-coins");
 const historyDiv = document.getElementById("history");
-const playerText = document.getElementById("current-player");
 
 // ==========================
-// LOGUEO Y CARGA
+// ACCIONES (GLOBALES)
+// ==========================
+window.handleCustom = (action) => {
+    const input = document.getElementById("custom-val");
+    const val = parseInt(input.value);
+    if (isNaN(val) || val <= 0) return alert("Escribe un número válido");
+    window.handleCoin(action, val);
+    input.value = "";
+};
+
+window.handleCoin = async (action, amount = 1) => {
+    if (isSaving) return;
+    
+    const oldW = myWallet; const oldB = sharedBank; const oldH = [...sharedHistory];
+    let donationChange = 0;
+
+    if (action === 'add') {
+        if (myWallet < amount) return alert("¡No tienes suficientes monedas!");
+        myWallet -= amount; sharedBank += amount; donationChange = amount;
+        sharedHistory.push(`${currentPlayer} dio ${amount} 🪙`);
+    } else {
+        if (sharedBank < amount) return alert("¡Pusheen no tiene tanto!");
+        myWallet += amount; sharedBank -= amount; donationChange = -amount;
+        sharedHistory.push(`${currentPlayer} robó ${amount} ❌`);
+    }
+
+    renderUI();
+    isSaving = true;
+
+    try {
+        const { data } = await supabase.from("players").select("weekly_donations").eq("username", currentPlayer).single();
+        const newWeekly = Math.max(0, (data.weekly_donations || 0) + donationChange);
+
+        await Promise.all([
+            supabase.from("players").update({ wallet_coins: myWallet, weekly_donations: newWeekly }).eq("username", currentPlayer),
+            supabase.from("bank").update({ total_coins: sharedBank, history: sharedHistory }).eq("id", 1)
+        ]);
+        updateRankingUI();
+    } catch (e) {
+        myWallet = oldW; sharedBank = oldB; sharedHistory = oldH; renderUI();
+        console.error("Error:", e);
+    } finally { isSaving = false; }
+};
+
+// ==========================
+// RENDER Y RANKING
+// ==========================
+async function updateRankingUI() {
+    const { data: r } = await supabase.from("players").select("username, weekly_donations").order("weekly_donations", { ascending: false });
+    const list = document.getElementById("ranking-list");
+    if (!r) return;
+    
+    list.innerHTML = r.map((p, i) => 
+        `<p class="${i === 0 ? 'first-place' : ''}">${i === 0 ? '👑' : '🐾'} ${p.username}: ${p.weekly_donations} monedas</p>`
+    ).join("");
+}
+
+function renderUI() {
+    coinDisplay.textContent = sharedBank;
+    walletDisplay.textContent = myWallet;
+    // Mostrar últimos 6 movimientos centrados
+    historyDiv.innerHTML = [...sharedHistory].reverse().slice(0, 6).map(m => `<p>${m}</p>`).join("");
+}
+
+// ==========================
+// CARGA INICIAL
 // ==========================
 async function loadData(name) {
     currentPlayer = name;
@@ -48,62 +112,12 @@ async function loadData(name) {
     updateRankingUI();
 }
 
-// ==========================
-// ACCIONES (DAR / QUITAR)
-// ==========================
-window.handleCustom = (action) => {
-    const input = document.getElementById("custom-val");
-    const val = parseInt(input.value);
-    if (isNaN(val) || val <= 0) return alert("Escribe un número");
-    handleCoin(action, val);
-    input.value = "";
-};
-
-window.handleCoin = async (action, amount = 1) => {
-    if (isSaving) return;
-    const oldW = myWallet; const oldB = sharedBank; const oldH = [...sharedHistory];
-    let donationChange = 0;
-
-    if (action === 'add') {
-        if (myWallet < amount) return alert("No tienes suficientes monedas");
-        myWallet -= amount; sharedBank += amount; donationChange = amount;
-        sharedHistory.push(`${currentPlayer} dio ${amount} 🪙`);
-    } else {
-        if (sharedBank < amount) return alert("Pusheen no tiene tanto");
-        myWallet += amount; sharedBank -= amount; donationChange = -amount;
-        sharedHistory.push(`${currentPlayer} robó ${amount} ❌`);
-    }
-
-    renderUI();
-    isSaving = true;
-
-    try {
-        const { data } = await supabase.from("players").select("weekly_donations").eq("username", currentPlayer).single();
-        const newWeekly = Math.max(0, (data.weekly_donations || 0) + donationChange);
-
-        await Promise.all([
-            supabase.from("players").update({ wallet_coins: myWallet, weekly_donations: newWeekly }).eq("username", currentPlayer),
-            supabase.from("bank").update({ total_coins: sharedBank, history: sharedHistory }).eq("id", 1)
-        ]);
-    } catch (e) {
-        myWallet = oldW; sharedBank = oldB; sharedHistory = oldH; renderUI();
-    } finally { isSaving = false; }
-};
-
-// ==========================
-// UI Y RANKING
-// ==========================
-async function updateRankingUI() {
-    const { data: r } = await supabase.from("players").select("username, weekly_donations").order("weekly_donations", { ascending: false });
-    const list = document.getElementById("ranking-list");
-    list.innerHTML = r.map((p, i) => `<p class="${i===0?'first-place':''}">${i===0?'👑':'🐾'} ${p.username}: ${p.weekly_donations}</p>`).join("");
-}
-
+// Funciones de apoyo
 async function checkDailyReward(user) {
     const hoy = new Date().toISOString().split('T')[0];
     if (user.last_claim !== hoy) {
         myWallet += 2;
-        alert(`¡Hola! +2 monedas diarias 🐾`);
+        alert(`¡Hola ${currentPlayer}! 🐾 Has recibido tus 2 monedas diarias.`);
         await supabase.from("players").update({ wallet_coins: myWallet, last_claim: hoy }).eq("username", currentPlayer);
     }
 }
@@ -113,12 +127,7 @@ async function refreshSharedData() {
     if (b) { sharedBank = b.total_coins; sharedHistory = b.history || []; }
 }
 
-function renderUI() {
-    coinDisplay.textContent = sharedBank;
-    walletDisplay.textContent = myWallet;
-    historyDiv.innerHTML = [...sharedHistory].reverse().slice(0, 5).map(m => `<p>${m}</p>`).join("");
-}
-
+// Eventos de botones de login
 document.getElementById("franco-btn").onclick = () => loadData("Franco");
 document.getElementById("jess-btn").onclick = () => loadData("Jess");
 document.getElementById("logout-btn").onclick = () => location.reload();
