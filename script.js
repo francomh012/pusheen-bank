@@ -127,6 +127,32 @@ async function refreshSharedData() {
     if (b) { sharedBank = b.total_coins; sharedHistory = b.history || []; }
 }
 
+// RECLAMAR RECOMPENSA EVENTO
+
+document.getElementById("claim-btn").onclick = async () => {
+
+if(!currentPlayer) return;
+
+const btn = document.getElementById("claim-btn");
+
+if(btn.disabled) return;
+
+myWallet += 100;
+
+renderUI();
+
+await supabase
+.from("players")
+.update({ wallet_coins: myWallet })
+.eq("username", currentPlayer);
+
+btn.disabled = true;
+btn.textContent = "🎁 Recompensa reclamada";
+
+alert("🎉 ¡Has recibido 100 monedas del evento!");
+
+};
+
 // Eventos de botones de login
 document.getElementById("franco-btn").onclick = () => loadData("Franco");
 document.getElementById("jess-btn").onclick = () => loadData("Jess");

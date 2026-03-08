@@ -146,8 +146,10 @@ animation:bounce 3s infinite;
 font-size:16px;
 line-height:1.7;
 color:#c2185b;
-text-align:left;
+text-align:center;
 white-space:pre-line;
+max-width:420px;
+margin:auto;
 }
 
 #events-btn{
@@ -176,4 +178,9 @@ transform:translateY(0);
 
 100%{transform:translateY(0)}
 
+}
+
+#claim-btn{
+background:#ff4081;
+margin-top:10px;
 }
