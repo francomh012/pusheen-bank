@@ -133,12 +133,19 @@ document.getElementById("jess-btn").onclick = () => loadData("Jess");
 document.getElementById("logout-btn").onclick = () => location.reload();
 
 // BOTÓN EVENTOS
+
 document.getElementById("events-btn").onclick = () => {
-  document.getElementById("game-screen").style.display = "none";
-  document.getElementById("events-screen").style.display = "block";
+
+document.getElementById("game-screen").style.display = "none";
+
+document.getElementById("events-screen").style.display = "block";
+
 };
 
 document.getElementById("back-btn").onclick = () => {
-  document.getElementById("events-screen").style.display = "none";
-  document.getElementById("game-screen").style.display = "block";
+
+document.getElementById("events-screen").style.display = "none";
+
+document.getElementById("game-screen").style.display = "block";
+
 };

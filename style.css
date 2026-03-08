@@ -120,24 +120,60 @@ input[type="number"] {
 
 .pusheen-img { width: 70%; max-width: 180px; margin: 15px auto; display: block; }
 
-.event-img{
-  width:100%;
-  max-width:250px;
-  margin:15px auto;
-  display:block;
-  border-radius:20px;
+/* EVENTOS */
+
+.event-card{
+max-width:500px;
+animation:fadeIn 1s ease;
 }
 
-.event-text{
-  font-size:16px;
-  color:#c2185b;
-  margin:10px 0;
+.event-img-top{
+width:100%;
+max-width:420px;
+margin:15px auto;
+display:block;
+border-radius:20px;
+}
+
+.event-img-bottom{
+width:180px;
+margin:20px auto;
+display:block;
+animation:bounce 3s infinite;
+}
+
+.event-message{
+font-size:16px;
+line-height:1.7;
+color:#c2185b;
+text-align:left;
+white-space:pre-line;
 }
 
 #events-btn{
-  background:#f06292;
+background:#f06292;
 }
 
-#events-screen{
-  text-align:center;
+@keyframes fadeIn{
+
+from{
+opacity:0;
+transform:translateY(20px);
+}
+
+to{
+opacity:1;
+transform:translateY(0);
+}
+
+}
+
+@keyframes bounce{
+
+0%{transform:translateY(0)}
+
+50%{transform:translateY(-10px)}
+
+100%{transform:translateY(0)}
+
 }
