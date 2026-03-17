@@ -1,4 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+import { renderGamesTab } from './games.js';
 
 // ==========================
 // CONFIGURACIÓN SUPABASE
@@ -9,8 +10,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ==========================
-// VIDEOS DE PUSHEEN — TUS LINKS
-// Extraemos solo el ID de cada URL de YouTube
+// VIDEOS DE PUSHEEN
 // ==========================
 const PUSHEEN_VIDEOS = [
   { id: 'LBkVqEvctkg', title: 'Pusheen Video 1' },
@@ -20,12 +20,10 @@ const PUSHEEN_VIDEOS = [
   { id: '_6cOAcMrcQo', title: 'Pusheen Video 5' },
   { id: 'kmChzsv7_PI', title: 'Pusheen Video 6' },
 ];
-
-// Probabilidad de que aparezca un video al canjear recompensa (40%)
 const VIDEO_PROBABILITY = 0.4;
 
 // ==========================
-// RECOMPENSAS — CONFIGURACIÓN
+// RECOMPENSAS
 // ==========================
 const COIN_REWARDS = [
   { id: 'coins_50',  threshold: 50,  icon: '🌸', title: '50 monedas donadas',  desc: '+10 monedas bonus',  coins: 10  },
@@ -44,18 +42,17 @@ const STREAK_REWARDS = [
 // ESTADO GLOBAL
 // ==========================
 let currentPlayer    = null;
-let myWallet         = 0;      // puede ser negativo
-let sharedBank       = 0;      // puede ser negativo
+let myWallet         = 0;
+let sharedBank       = 0;
 let sharedHistory    = [];
 let isSaving         = false;
 let allComplaints    = [];
 let myStreak         = 0;
 let myTotalDonated   = 0;
 let myClaimedRewards = [];
-let myVideos         = [];     // videos ganados [{id, title, date}]
+let myVideos         = [];
 
 const AVATARS = { Franco: '🧔', Jess: '👩' };
-
 const RANKING_IMGS = {
   Franco: { src: 'assets/img/corona1.png', label: '¡Franco va ganando! 👑' },
   Jess:   { src: 'assets/img/corona2.png', label: '¡Jess va ganando! 👑'   },
@@ -68,6 +65,11 @@ const RANKING_IMGS = {
 const coinDisplay   = document.getElementById("coin-count");
 const walletDisplay = document.getElementById("available-coins");
 const historyDiv    = document.getElementById("history");
+
+// ==========================
+// EXPONER getWallet para games.js
+// ==========================
+window.getWallet = () => myWallet;
 
 // ==========================
 // MENSAJES
@@ -110,7 +112,6 @@ function spawnCoins(count = 6) {
 }
 window.spawnCoins = spawnCoins;
 
-// Actualiza colores según si hay valores negativos
 function updateNegativeStyles() {
     const bankNum    = document.getElementById('coin-count');
     const bankBubble = bankNum?.closest('.bank-bubble');
@@ -118,35 +119,21 @@ function updateNegativeStyles() {
     const walletEl   = document.getElementById('available-coins');
     const walletWrap = walletEl?.closest('.wallet-amount');
 
-    // Banco
-    if (bankNum) {
-        bankNum.classList.toggle('negative', sharedBank < 0);
-    }
-    if (bankBubble) {
-        bankBubble.classList.toggle('negative', sharedBank < 0);
-    }
-    // Pusheen triste si banco negativo
-    if (pusheenImg) {
-        pusheenImg.classList.toggle('sad', sharedBank < 0);
-    }
-    // Billetera
-    if (walletWrap) {
-        walletWrap.classList.toggle('negative', myWallet < 0);
-    }
+    if (bankNum)    bankNum.classList.toggle('negative', sharedBank < 0);
+    if (bankBubble) bankBubble.classList.toggle('negative', sharedBank < 0);
+    if (pusheenImg) pusheenImg.classList.toggle('sad', sharedBank < 0);
+    if (walletWrap) walletWrap.classList.toggle('negative', myWallet < 0);
 
-    // Badge de deuda en banco
     let debtBadge = document.getElementById('debt-badge');
-    if (!debtBadge) {
+    if (!debtBadge && bankBubble) {
         debtBadge = document.createElement('div');
         debtBadge.id = 'debt-badge';
         debtBadge.className = 'debt-badge';
-        bankBubble?.appendChild(debtBadge);
+        bankBubble.appendChild(debtBadge);
     }
-    if (sharedBank < 0) {
-        debtBadge.textContent = `¡En deuda! ${sharedBank} 🪙`;
-        debtBadge.classList.add('show');
-    } else {
-        debtBadge.classList.remove('show');
+    if (debtBadge) {
+        if (sharedBank < 0) { debtBadge.textContent = `¡En deuda! ${sharedBank} 🪙`; debtBadge.classList.add('show'); }
+        else { debtBadge.classList.remove('show'); }
     }
 }
 
@@ -156,8 +143,30 @@ function setActionButtons(disabled) {
 }
 
 // ==========================
-// ACCIONES DE MONEDAS
-// ✅ Permite negativos en billetera Y banco
+// WALLET CHANGE — usado por juegos y por monedas normales
+// ==========================
+async function walletChange(delta, source = 'action') {
+    const oldW = myWallet;
+    myWallet += delta;
+    walletDisplay.textContent = myWallet;
+    updateNegativeStyles();
+
+    try {
+        const { error } = await supabase.from("players")
+            .update({ wallet_coins: myWallet })
+            .eq("username", currentPlayer);
+        if (error) throw error;
+    } catch (e) {
+        myWallet = oldW;
+        walletDisplay.textContent = myWallet;
+        updateNegativeStyles();
+        showMessage("Error al guardar monedas 😿", 'error');
+        console.error(e);
+    }
+}
+
+// ==========================
+// ACCIONES DE MONEDAS (banco compartido)
 // ==========================
 window.handleCustom = (action) => {
     const input = document.getElementById("custom-val");
@@ -179,96 +188,52 @@ window.handleCoin = async (action, amount = 1) => {
     const oldTotalDonated = myTotalDonated;
     let donationChange = 0;
 
-    // ✅ Sin restricción de mínimo — permite negativos
     if (action === 'add') {
-        myWallet     -= amount;
-        sharedBank   += amount;
-        donationChange = amount;
-        myTotalDonated += amount;
+        myWallet -= amount; sharedBank += amount;
+        donationChange = amount; myTotalDonated += amount;
         sharedHistory.push(`${currentPlayer} dio ${amount} 🪙`);
-
-        // Aviso si billetera queda negativa
-        if (myWallet < 0) {
-            showMessage(`⚠️ Tu billetera quedó en ${myWallet} 🪙 ¡Estás en deuda!`, 'debt');
-        }
+        if (myWallet < 0) showMessage(`⚠️ Billetera en ${myWallet} 🪙 ¡En deuda!`, 'debt');
     } else {
-        myWallet   += amount;
-        sharedBank -= amount;
+        myWallet += amount; sharedBank -= amount;
         donationChange = -amount;
         sharedHistory.push(`${currentPlayer} robó ${amount} ❌`);
-
-        // Aviso si banco queda negativo
-        if (sharedBank < 0) {
-            showMessage(`💀 ¡Pusheen quedó en ${sharedBank} 🪙! ¡En deuda!`, 'debt');
-        }
+        if (sharedBank < 0) showMessage(`💀 ¡Pusheen en ${sharedBank} 🪙! ¡En deuda!`, 'debt');
     }
 
-    renderUI();
-    bumpBankNum();
-    updateNegativeStyles();
+    renderUI(); bumpBankNum(); updateNegativeStyles();
+    if (action === 'add') { spawnCoins(6); document.getElementById('pusheen-main-img')?.classList.remove('sad'); }
+    else { const img = document.getElementById('pusheen-main-img'); if (img) { img.classList.add('shake'); setTimeout(() => img.classList.remove('shake'), 600); } }
 
-    if (action === 'add') {
-        spawnCoins(6);
-        const img = document.getElementById('pusheen-main-img');
-        if (img) img.classList.remove('sad');
-    } else {
-        const img = document.getElementById('pusheen-main-img');
-        if (img) { img.classList.add('shake'); setTimeout(() => img.classList.remove('shake'), 600); }
-    }
-
-    isSaving = true;
-    setActionButtons(true);
+    isSaving = true; setActionButtons(true);
 
     try {
-        const { data, error: fetchError } = await supabase
-            .from("players")
+        const { data, error: fe } = await supabase.from("players")
             .select("wallet_coins, weekly_donations, total_donated")
-            .eq("username", currentPlayer)
-            .single();
-
-        if (fetchError || !data) throw new Error("No se encontró el jugador: " + (fetchError?.message || ''));
+            .eq("username", currentPlayer).single();
+        if (fe || !data) throw new Error(fe?.message);
 
         const newWeekly      = (data.weekly_donations || 0) + donationChange;
         const newTotalDonated = Math.max(0, (data.total_donated || 0) + (action === 'add' ? amount : 0));
 
-        const [upPlayer, upBank] = await Promise.all([
-            supabase.from("players").update({
-                wallet_coins:    myWallet,
-                weekly_donations: newWeekly,
-                total_donated:   newTotalDonated,
-            }).eq("username", currentPlayer),
-            supabase.from("bank").update({
-                total_coins: sharedBank,
-                history:     sharedHistory,
-            }).eq("id", 1)
+        const [upP, upB] = await Promise.all([
+            supabase.from("players").update({ wallet_coins: myWallet, weekly_donations: newWeekly, total_donated: newTotalDonated }).eq("username", currentPlayer),
+            supabase.from("bank").update({ total_coins: sharedBank, history: sharedHistory }).eq("id", 1)
         ]);
-
-        if (upPlayer.error) throw new Error(upPlayer.error.message);
-        if (upBank.error)   throw new Error(upBank.error.message);
+        if (upP.error) throw new Error(upP.error.message);
+        if (upB.error) throw new Error(upB.error.message);
 
         myTotalDonated = newTotalDonated;
-
-        if (action === 'add' && myWallet >= 0) {
-            showMessage(`¡Diste ${amount} moneda${amount > 1 ? 's' : ''} a Pusheen! 🪙`, 'success');
-        } else if (action === 'remove' && sharedBank >= 0) {
-            showMessage(`Robaste ${amount} moneda${amount > 1 ? 's' : ''}... ❌`, 'warning');
-        }
+        if (action === 'add' && myWallet >= 0) showMessage(`¡Diste ${amount} moneda${amount>1?'s':''} a Pusheen! 🪙`, 'success');
+        else if (action === 'remove' && sharedBank >= 0) showMessage(`Robaste ${amount} moneda${amount>1?'s':''}... ❌`, 'warning');
 
         if (action === 'add') checkNewRewards();
-        updateRankingUI();
-        renderRewardsUI();
-
+        updateRankingUI(); renderRewardsUI();
     } catch (e) {
-        myWallet = oldW; sharedBank = oldB; sharedHistory = oldH;
-        myTotalDonated = oldTotalDonated;
-        renderUI();
-        updateNegativeStyles();
+        myWallet = oldW; sharedBank = oldB; sharedHistory = oldH; myTotalDonated = oldTotalDonated;
+        renderUI(); updateNegativeStyles();
         showMessage("Error al guardar. Intenta de nuevo 😿", 'error');
-        console.error("Error:", e);
-    } finally {
-        isSaving = false;
-        setActionButtons(false);
-    }
+        console.error(e);
+    } finally { isSaving = false; setActionButtons(false); }
 };
 
 // ==========================
@@ -277,40 +242,33 @@ window.handleCoin = async (action, amount = 1) => {
 function renderUI() {
     coinDisplay.textContent   = sharedBank;
     walletDisplay.textContent = myWallet;
-    historyDiv.innerHTML = [...sharedHistory]
-        .reverse().slice(0, 6)
-        .map(m => `<div class="history-item">${m}</div>`)
-        .join("");
+    historyDiv.innerHTML = [...sharedHistory].reverse().slice(0, 6)
+        .map(m => `<div class="history-item">${m}</div>`).join("");
     updateNegativeStyles();
 }
 
 // ==========================
-// RANKING + IMAGEN DINÁMICA
+// RANKING
 // ==========================
 async function updateRankingUI() {
-    const { data: r, error } = await supabase
-        .from("players").select("username, weekly_donations")
-        .order("weekly_donations", { ascending: false });
-    if (error) { console.error("Error ranking:", error); return; }
+    const { data: r, error } = await supabase.from("players")
+        .select("username, weekly_donations").order("weekly_donations", { ascending: false });
+    if (error) { console.error(error); return; }
 
     const heroImg   = document.getElementById('ranking-hero-img');
     const heroLabel = document.getElementById('ranking-hero-label');
     if (r?.length && heroImg) {
-        const leader = r[0];
-        const cfg = RANKING_IMGS[leader.username] || RANKING_IMGS.default;
-        heroImg.src           = cfg.src;
-        heroLabel.textContent = cfg.label;
+        const cfg = RANKING_IMGS[r[0].username] || RANKING_IMGS.default;
+        heroImg.src = cfg.src; heroLabel.textContent = cfg.label;
     }
-
     const list = document.getElementById("ranking-list");
     if (!r) return;
     list.innerHTML = r.map((p, i) => `
-        <div class="ranking-item ${i === 0 ? 'first' : ''}" style="animation-delay:${i*0.08}s">
-            <span class="rank-pos">${i === 0 ? '👑' : i === 1 ? '🥈' : '🐾'}</span>
-            <span class="rank-name">${AVATARS[p.username] || '🐾'} ${p.username}</span>
+        <div class="ranking-item ${i===0?'first':''}" style="animation-delay:${i*0.08}s">
+            <span class="rank-pos">${i===0?'👑':i===1?'🥈':'🐾'}</span>
+            <span class="rank-name">${AVATARS[p.username]||'🐾'} ${p.username}</span>
             <span class="rank-coins">${p.weekly_donations} 🪙</span>
-        </div>
-    `).join("");
+        </div>`).join("");
 }
 
 // ==========================
@@ -329,20 +287,21 @@ function renderRewardGrid(containerId, rewards, currentVal, type) {
         const claimed  = myClaimedRewards.includes(r.id);
         const unlocked = !claimed && currentVal >= r.threshold;
         const pct      = Math.min(100, Math.round((currentVal / r.threshold) * 100));
-        let actionHTML = '';
-        if (claimed)        actionHTML = `<span class="badge-claimed">✅ Canjeada</span>`;
-        else if (unlocked)  actionHTML = `<button class="btn-claim gold" onclick="claimReward('${r.id}','${type}')">¡Canjear! 🎁</button>`;
-        else                actionHTML = `<span class="badge-locked">🔒 ${currentVal}/${r.threshold}</span>`;
+        let actionHTML = claimed
+            ? `<span class="badge-claimed">✅ Canjeada</span>`
+            : unlocked
+                ? `<button class="btn-claim gold" onclick="claimReward('${r.id}','${type}')">¡Canjear! 🎁</button>`
+                : `<span class="badge-locked">🔒 ${currentVal}/${r.threshold}</span>`;
         return `
-        <div class="reward-card ${claimed ? 'claimed' : unlocked ? 'unlocked' : ''}" style="animation-delay:${idx*0.06}s">
+        <div class="reward-card ${claimed?'claimed':unlocked?'unlocked':''}" style="animation-delay:${idx*0.06}s">
             <div class="reward-card-icon">${r.icon}</div>
             <div class="reward-card-info">
                 <div class="reward-card-title">${r.title}</div>
                 <div class="reward-card-desc">${r.desc}</div>
-                ${!claimed ? `<div class="reward-progress-wrap"><div class="reward-progress-bar" style="width:${pct}%"></div></div>` : ''}
+                ${!claimed?`<div class="reward-progress-wrap"><div class="reward-progress-bar" style="width:${pct}%"></div></div>`:''}
             </div>
             <div class="reward-card-action">
-                <span class="reward-pct">${claimed ? '100%' : pct+'%'}</span>
+                <span class="reward-pct">${claimed?'100%':pct+'%'}</span>
                 ${actionHTML}
             </div>
         </div>`;
@@ -350,58 +309,34 @@ function renderRewardGrid(containerId, rewards, currentVal, type) {
 }
 
 function checkNewRewards() {
-    const newCoin   = COIN_REWARDS.find(r => !myClaimedRewards.includes(r.id) && myTotalDonated >= r.threshold);
-    const newStreak = STREAK_REWARDS.find(r => !myClaimedRewards.includes(r.id) && myStreak >= r.threshold);
-    if (newCoin || newStreak) {
-        showMessage('🎁 ¡Tienes una recompensa disponible! Ve a Recompensas', 'success');
-    }
+    const nr = COIN_REWARDS.find(r => !myClaimedRewards.includes(r.id) && myTotalDonated >= r.threshold);
+    const ns = STREAK_REWARDS.find(r => !myClaimedRewards.includes(r.id) && myStreak >= r.threshold);
+    if (nr || ns) showMessage('🎁 ¡Tenés una recompensa disponible!', 'success');
 }
 
 window.claimReward = async (rewardId, type) => {
-    const allRewards = [...COIN_REWARDS, ...STREAK_REWARDS];
-    const reward = allRewards.find(r => r.id === rewardId);
-    if (!reward) return;
-    if (myClaimedRewards.includes(rewardId)) { showMessage('Ya canjeaste esta recompensa', 'error'); return; }
-
-    const currentVal = type === 'coins' ? myTotalDonated : myStreak;
-    if (currentVal < reward.threshold) { showMessage('Aún no alcanzas esta recompensa', 'error'); return; }
+    const reward = [...COIN_REWARDS,...STREAK_REWARDS].find(r => r.id === rewardId);
+    if (!reward || myClaimedRewards.includes(rewardId)) return;
+    const cv = type === 'coins' ? myTotalDonated : myStreak;
+    if (cv < reward.threshold) { showMessage('Aún no alcanzás esta recompensa', 'error'); return; }
 
     myWallet += reward.coins;
     myClaimedRewards = [...myClaimedRewards, rewardId];
-
-    // ¿Sale video? Probabilidad aleatoria
     const showVideo = Math.random() < VIDEO_PROBABILITY;
     let wonVideo = null;
-
     if (showVideo) {
-        // Elegir video aleatorio
-        const videoData = PUSHEEN_VIDEOS[Math.floor(Math.random() * PUSHEEN_VIDEOS.length)];
-        wonVideo = {
-            id:    videoData.id,
-            title: videoData.title,
-            date:  new Date().toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric' }),
-        };
+        const v = PUSHEEN_VIDEOS[Math.floor(Math.random() * PUSHEEN_VIDEOS.length)];
+        wonVideo = { id: v.id, title: v.title, date: new Date().toLocaleDateString('es', {day:'2-digit',month:'short',year:'numeric'}) };
         myVideos = [...myVideos, wonVideo];
         updateBackpackBadge();
     }
-
     try {
-        await supabase.from("players").update({
-            wallet_coins:    myWallet,
-            claimed_rewards: myClaimedRewards,
-            videos:          myVideos,
-        }).eq("username", currentPlayer);
-
-        renderUI();
-        renderRewardsUI();
-        showRewardModal(reward, wonVideo);
-
+        await supabase.from("players").update({ wallet_coins: myWallet, claimed_rewards: myClaimedRewards, videos: myVideos }).eq("username", currentPlayer);
+        renderUI(); renderRewardsUI(); showRewardModal(reward, wonVideo);
     } catch (e) {
-        myWallet -= reward.coins;
-        myClaimedRewards = myClaimedRewards.filter(id => id !== rewardId);
-        if (wonVideo) myVideos = myVideos.filter(v => v.id !== wonVideo.id || v.date !== wonVideo.date);
-        showMessage("Error al canjear. Intenta de nuevo.", 'error');
-        console.error(e);
+        myWallet -= reward.coins; myClaimedRewards = myClaimedRewards.filter(id => id !== rewardId);
+        if (wonVideo) myVideos = myVideos.filter(v => v.id !== wonVideo.id);
+        showMessage("Error al canjear.", 'error'); console.error(e);
     }
 };
 
@@ -412,213 +347,141 @@ function showRewardModal(reward, wonVideo = null) {
     document.getElementById('reward-modal-title').textContent = `${reward.icon} ¡${reward.title}!`;
     document.getElementById('reward-modal-desc').textContent  = reward.desc;
     const coinsEl = document.getElementById('reward-modal-coins');
-    coinsEl.textContent   = `+${reward.coins} 🪙`;
-    coinsEl.style.display = 'block';
-
-    spawnModalConfetti();
-    spawnCoins(10);
-
+    coinsEl.textContent = `+${reward.coins} 🪙`; coinsEl.style.display = 'block';
+    spawnModalConfetti(); spawnCoins(10);
     const videoWrap  = document.getElementById('reward-video-wrap');
     const videoFrame = document.getElementById('reward-video-frame');
     if (wonVideo) {
-        // Embed de YouTube con nocookie para mejor compatibilidad
-        videoFrame.innerHTML = `<iframe
-            src="https://www.youtube-nocookie.com/embed/${wonVideo.id}?autoplay=1&mute=0&rel=0"
-            allow="autoplay; encrypted-media; picture-in-picture"
-            allowfullscreen
-            loading="lazy">
-        </iframe>`;
+        videoFrame.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${wonVideo.id}?autoplay=1&mute=0&rel=0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe>`;
         videoWrap.style.display = 'flex';
-    } else {
-        videoFrame.innerHTML = '';
-        videoWrap.style.display = 'none';
-    }
-
+    } else { videoFrame.innerHTML = ''; videoWrap.style.display = 'none'; }
     document.getElementById('reward-modal').style.display   = 'flex';
     document.getElementById('reward-overlay').style.display = 'block';
 }
 
 function spawnModalConfetti() {
     const container = document.getElementById('reward-confetti');
-    if (!container) return;
-    container.innerHTML = '';
+    if (!container) return; container.innerHTML = '';
     const colors = ['#ff6fa8','#ffc94d','#ffaac9','#a8e6c0','#ff6b6b','#ffd6e7'];
     for (let i = 0; i < 30; i++) {
         const p = document.createElement('div');
         p.className = 'confetti-piece';
-        p.style.left              = (Math.random() * 100) + '%';
-        p.style.background        = colors[Math.floor(Math.random() * colors.length)];
-        p.style.animationDuration = (1.2 + Math.random() * 1.2) + 's';
-        p.style.animationDelay    = (Math.random() * 0.5) + 's';
-        p.style.width             = (6 + Math.random() * 6) + 'px';
-        p.style.height            = (6 + Math.random() * 6) + 'px';
-        p.style.borderRadius      = Math.random() > 0.5 ? '50%' : '2px';
+        p.style.left = (Math.random()*100)+'%';
+        p.style.background = colors[Math.floor(Math.random()*colors.length)];
+        p.style.animationDuration = (1.2+Math.random()*1.2)+'s';
+        p.style.animationDelay = (Math.random()*0.5)+'s';
+        p.style.width  = (6+Math.random()*6)+'px';
+        p.style.height = (6+Math.random()*6)+'px';
+        p.style.borderRadius = Math.random()>0.5?'50%':'2px';
         container.appendChild(p);
     }
 }
 
 // ==========================
-// MOCHILA DE VIDEOS
+// MOCHILA
 // ==========================
 function updateBackpackBadge() {
     const badge = document.getElementById('backpack-badge');
     if (!badge) return;
-    if (myVideos.length > 0) {
-        badge.textContent    = myVideos.length;
-        badge.style.display  = 'flex';
-    } else {
-        badge.style.display  = 'none';
-    }
+    if (myVideos.length > 0) { badge.textContent = myVideos.length; badge.style.display = 'flex'; }
+    else { badge.style.display = 'none'; }
 }
-
-window.renderBackpack = function() {
+window.renderBackpack = () => {
     const list = document.getElementById('backpack-list');
     if (!list) return;
-    if (!myVideos.length) {
-        list.innerHTML = `<p class="notif-empty">Aún no ganaste videos 🐾<small>Canjea recompensas para ganarlos</small></p>`;
-        return;
-    }
+    if (!myVideos.length) { list.innerHTML = `<p class="notif-empty">Aún no ganaste videos 🐾<small>Canjea recompensas para ganarlos</small></p>`; return; }
     list.innerHTML = myVideos.map((v, idx) => `
         <div class="backpack-video-card" style="animation-delay:${idx*0.06}s">
-            <iframe class="backpack-video-thumb"
-                src="https://www.youtube-nocookie.com/embed/${v.id}?rel=0"
-                allow="encrypted-media; picture-in-picture"
-                allowfullscreen loading="lazy">
-            </iframe>
+            <iframe class="backpack-video-thumb" src="https://www.youtube-nocookie.com/embed/${v.id}?rel=0" allow="encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe>
             <div class="backpack-video-info">
                 <span class="backpack-video-label">🎬 ${v.title}</span>
                 <span class="backpack-video-date">${v.date}</span>
             </div>
-        </div>
-    `).join("");
+        </div>`).join("");
 };
 
 // ==========================
 // DENUNCIAS
 // ==========================
 async function loadComplaints() {
-    const { data, error } = await supabase
-        .from("complaints").select("*")
-        .order("created_at", { ascending: false });
-    if (error) { console.error("Error denuncias:", error); return; }
-    allComplaints = data || [];
-    renderComplaints();
-    updateNotifBadge();
+    const { data, error } = await supabase.from("complaints").select("*").order("created_at", { ascending: false });
+    if (error) { console.error(error); return; }
+    allComplaints = data || []; renderComplaints(); updateNotifBadge();
 }
-
 function renderComplaints() {
     const list = document.getElementById("complaints-list");
-    if (!allComplaints.length) {
-        list.innerHTML = `<p style="text-align:center;color:var(--text-soft);padding:24px;font-weight:700;">No hay denuncias por ahora 🐾</p>`;
-        return;
-    }
+    if (!allComplaints.length) { list.innerHTML = `<p style="text-align:center;color:var(--text-soft);padding:24px;font-weight:700;">No hay denuncias por ahora 🐾</p>`; return; }
     list.innerHTML = allComplaints.map((c, idx) => {
-        const isNew  = !c.seen_by?.includes(currentPlayer) && c.reported_by !== currentPlayer;
+        const isNew = !c.seen_by?.includes(currentPlayer) && c.reported_by !== currentPlayer;
         const isMine = c.reported_by === currentPlayer;
-        const date   = new Date(c.created_at).toLocaleDateString('es', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
-        const sev    = { leve:'😐 Leve', grave:'😠 Grave', catastrofico:'💀 Catastrófico' };
+        const date = new Date(c.created_at).toLocaleDateString('es', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+        const sev  = {leve:'😐 Leve',grave:'😠 Grave',catastrofico:'💀 Catastrófico'};
         return `
-        <div class="complaint-card ${isNew ? 'nueva' : ''}" data-id="${c.id}" style="animation-delay:${idx*0.06}s">
+        <div class="complaint-card ${isNew?'nueva':''}" data-id="${c.id}" style="animation-delay:${idx*0.06}s">
             <div class="complaint-top">
                 <span class="complaint-reporter">${AVATARS[c.reported_by]||'🐾'} ${c.reported_by} denuncia</span>
                 <span class="severity-tag ${c.severity}">${sev[c.severity]||c.severity}</span>
             </div>
             <div class="complaint-category">${c.category}</div>
             <div class="complaint-desc">${c.description}</div>
-            ${c.image_url ? `<img src="${c.image_url}" class="complaint-img" alt="evidencia">` : ''}
+            ${c.image_url?`<img src="${c.image_url}" class="complaint-img" alt="evidencia">`:''}
             <div class="complaint-footer">
                 <span class="complaint-status ${c.status}">${c.status==='abierta'?'🔴 Abierta':'✅ Resuelta'}</span>
                 <span class="complaint-date">${date}</span>
-                ${isMine && c.status==='abierta' ? `<button class="btn-resolve resolver" onclick="resolveComplaint('${c.id}','resuelta')">✅ Resolver</button>` : ''}
-                ${isMine ? `<button class="btn-resolve eliminar" onclick="deleteComplaint('${c.id}')">🗑️</button>` : ''}
+                ${isMine&&c.status==='abierta'?`<button class="btn-resolve resolver" onclick="resolveComplaint('${c.id}','resuelta')">✅ Resolver</button>`:''}
+                ${isMine?`<button class="btn-resolve eliminar" onclick="deleteComplaint('${c.id}')">🗑️</button>`:''}
             </div>
         </div>`;
     }).join("");
 }
-
 async function uploadImage(file) {
-    const ext  = file.name.split('.').pop();
-    const path = `${Date.now()}.${ext}`;
+    const ext = file.name.split('.').pop(); const path = `${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from('complaint-images').upload(path, file);
     if (error) throw error;
-    const { data } = supabase.storage.from('complaint-images').getPublicUrl(path);
-    return data.publicUrl;
+    return supabase.storage.from('complaint-images').getPublicUrl(path).data.publicUrl;
 }
-
 document.getElementById("btn-submit-complaint").onclick = async () => {
-    const category    = document.getElementById("c-category").value;
-    const description = document.getElementById("c-description").value.trim();
-    const severity    = document.getElementById("c-severity").value;
-    const imageFile   = document.getElementById("c-image").files[0];
-    if (!category)    { showMessage("Elige una categoría",    'error', 'complaint-msg'); return; }
-    if (!description) { showMessage("Escribe qué pasó",       'error', 'complaint-msg'); return; }
-    if (!severity)    { showMessage("Elige nivel de gravedad",'error', 'complaint-msg'); return; }
-    const btn = document.getElementById("btn-submit-complaint");
-    btn.disabled = true; btn.textContent = "Enviando...";
+    const category=document.getElementById("c-category").value, description=document.getElementById("c-description").value.trim(), severity=document.getElementById("c-severity").value, imageFile=document.getElementById("c-image").files[0];
+    if (!category)    { showMessage("Elige una categoría",'error','complaint-msg'); return; }
+    if (!description) { showMessage("Escribe qué pasó",'error','complaint-msg'); return; }
+    if (!severity)    { showMessage("Elige nivel de gravedad",'error','complaint-msg'); return; }
+    const btn=document.getElementById("btn-submit-complaint"); btn.disabled=true; btn.textContent="Enviando...";
     try {
-        let image_url = null;
-        if (imageFile) image_url = await uploadImage(imageFile);
-        const { error } = await supabase.from("complaints").insert([{
-            reported_by: currentPlayer, category, description, severity,
-            image_url, status: 'abierta', seen_by: [currentPlayer]
-        }]);
+        let image_url=null; if (imageFile) image_url=await uploadImage(imageFile);
+        const {error}=await supabase.from("complaints").insert([{reported_by:currentPlayer,category,description,severity,image_url,status:'abierta',seen_by:[currentPlayer]}]);
         if (error) throw error;
-        document.getElementById("c-category").value   = "";
-        document.getElementById("c-description").value = "";
-        document.getElementById("c-severity").value    = "";
-        document.getElementById("c-image").value       = "";
-        document.querySelectorAll('.severity-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById('complaint-form').style.display    = 'none';
-        document.getElementById('btn-new-complaint').style.display = 'block';
-        showMessage("¡Denuncia enviada! 🚨", 'success', 'action-message');
-    } catch (e) {
-        showMessage("Error al enviar.", 'error', 'complaint-msg');
-        console.error(e);
-    } finally {
-        btn.disabled = false; btn.textContent = "Enviar denuncia 🚨";
-    }
+        ['c-category','c-description','c-severity','c-image'].forEach(id=>document.getElementById(id).value='');
+        document.querySelectorAll('.severity-btn').forEach(b=>b.classList.remove('active'));
+        document.getElementById('complaint-form').style.display='none';
+        document.getElementById('btn-new-complaint').style.display='block';
+        showMessage("¡Denuncia enviada! 🚨",'success','action-message');
+    } catch(e) { showMessage("Error al enviar.",'error','complaint-msg'); console.error(e); }
+    finally { btn.disabled=false; btn.textContent="Enviar denuncia 🚨"; }
 };
-
-window.resolveComplaint = async (id, status) => {
-    await supabase.from("complaints").update({ status }).eq("id", id);
-};
-window.deleteComplaint = async (id) => {
-    if (!confirm("¿Eliminar esta denuncia?")) return;
-    await supabase.from("complaints").delete().eq("id", id);
-};
+window.resolveComplaint = async (id,status) => { await supabase.from("complaints").update({status}).eq("id",id); };
+window.deleteComplaint  = async (id) => { if (!confirm("¿Eliminar?")) return; await supabase.from("complaints").delete().eq("id",id); };
 
 // ==========================
 // NOTIFICACIONES
 // ==========================
 function updateNotifBadge() {
-    const unseen = allComplaints.filter(c => !c.seen_by?.includes(currentPlayer) && c.reported_by !== currentPlayer).length;
-    const badge  = document.getElementById("notif-badge");
-    if (unseen > 0) { badge.textContent = unseen; badge.style.display = 'flex'; }
-    else { badge.style.display = 'none'; }
+    const unseen=allComplaints.filter(c=>!c.seen_by?.includes(currentPlayer)&&c.reported_by!==currentPlayer).length;
+    const badge=document.getElementById("notif-badge");
+    if (unseen>0){badge.textContent=unseen;badge.style.display='flex';}else{badge.style.display='none';}
     renderNotifPanel();
 }
-
 function renderNotifPanel() {
-    const list   = document.getElementById("notif-list");
-    const unread = allComplaints.filter(c => !c.seen_by?.includes(currentPlayer) && c.reported_by !== currentPlayer);
-    const read   = allComplaints.filter(c => c.seen_by?.includes(currentPlayer) || c.reported_by === currentPlayer).slice(0, 5);
-    if (!unread.length && !read.length) { list.innerHTML = `<p class="notif-empty">No hay notificaciones 🐾</p>`; return; }
-    const item = (c, isNew) => {
-        const date = new Date(c.created_at).toLocaleDateString('es', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
-        return `<div class="notif-item ${isNew?'nueva':''}">🚨 <strong>${c.reported_by}</strong> hizo una denuncia: <em>${c.category}</em><div class="notif-time">${date}</div></div>`;
-    };
-    list.innerHTML =
-        unread.map(c => item(c, true)).join("") +
-        (read.length ? `<p style="font-size:0.78rem;color:var(--text-soft);padding:8px 0;font-weight:700;">— Anteriores —</p>` : '') +
-        read.map(c => item(c, false)).join("");
+    const list=document.getElementById("notif-list");
+    const unread=allComplaints.filter(c=>!c.seen_by?.includes(currentPlayer)&&c.reported_by!==currentPlayer);
+    const read=allComplaints.filter(c=>c.seen_by?.includes(currentPlayer)||c.reported_by===currentPlayer).slice(0,5);
+    if (!unread.length&&!read.length){list.innerHTML=`<p class="notif-empty">No hay notificaciones 🐾</p>`;return;}
+    const item=(c,isNew)=>{const date=new Date(c.created_at).toLocaleDateString('es',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});return `<div class="notif-item ${isNew?'nueva':''}">🚨 <strong>${c.reported_by}</strong> hizo una denuncia: <em>${c.category}</em><div class="notif-time">${date}</div></div>`;};
+    list.innerHTML=unread.map(c=>item(c,true)).join("")+(read.length?`<p style="font-size:0.78rem;color:var(--text-soft);padding:8px 0;font-weight:700;">— Anteriores —</p>`:'')+read.map(c=>item(c,false)).join("");
 }
-
 window.markNotifsSeen = async () => {
-    const unseen = allComplaints.filter(c => !c.seen_by?.includes(currentPlayer) && c.reported_by !== currentPlayer);
-    for (const c of unseen) {
-        await supabase.from("complaints").update({ seen_by: [...(c.seen_by||[]), currentPlayer] }).eq("id", c.id);
-    }
-    document.getElementById("notif-badge").style.display = 'none';
+    const unseen=allComplaints.filter(c=>!c.seen_by?.includes(currentPlayer)&&c.reported_by!==currentPlayer);
+    for (const c of unseen) await supabase.from("complaints").update({seen_by:[...(c.seen_by||[]),currentPlayer]}).eq("id",c.id);
+    document.getElementById("notif-badge").style.display='none';
 };
 
 // ==========================
@@ -626,91 +489,62 @@ window.markNotifsSeen = async () => {
 // ==========================
 async function loadData(name) {
     currentPlayer = name;
-    document.getElementById("player-avatar").textContent = AVATARS[name] || '🐾';
+    document.getElementById("player-avatar").textContent = AVATARS[name]||'🐾';
     document.getElementById("player-name").textContent   = name;
 
-    let { data: userData, error: userError } = await supabase
-        .from("players").select("*").eq("username", name).maybeSingle();
+    let { data: u, error: ue } = await supabase.from("players").select("*").eq("username",name).maybeSingle();
+    if (ue) { showMessage("Error al cargar tu perfil 😿",'error'); return; }
 
-    if (userError) { showMessage("Error al cargar tu perfil 😿", 'error'); return; }
-
-    if (!userData) {
-        myWallet = 100; myStreak = 0; myTotalDonated = 0;
-        myClaimedRewards = []; myVideos = [];
-        await supabase.from("players").insert([{
-            username: name, wallet_coins: 100,
-            last_claim: new Date().toISOString().split('T')[0],
-            weekly_donations: 0, total_donated: 0,
-            streak: 0, claimed_rewards: [], videos: [],
-        }]);
+    if (!u) {
+        myWallet=100; myStreak=0; myTotalDonated=0; myClaimedRewards=[]; myVideos=[];
+        await supabase.from("players").insert([{username:name,wallet_coins:100,last_claim:new Date().toISOString().split('T')[0],weekly_donations:0,total_donated:0,streak:0,claimed_rewards:[],videos:[]}]);
     } else {
-        myWallet         = userData.wallet_coins        ?? 100;
-        myStreak         = userData.streak              ?? 0;
-        myTotalDonated   = userData.total_donated       ?? 0;
-        myClaimedRewards = userData.claimed_rewards     ?? [];
-        myVideos         = userData.videos              ?? [];
-        await checkDailyReward(userData);
+        myWallet=u.wallet_coins??100; myStreak=u.streak??0; myTotalDonated=u.total_donated??0;
+        myClaimedRewards=u.claimed_rewards??[]; myVideos=u.videos??[];
+        await checkDailyReward(u);
     }
 
     await refreshSharedData();
     await loadComplaints();
 
-    // Tiempo real
+    // Inicializar juegos con callback de wallet
+    renderGamesTab(currentPlayer, myWallet, async (delta) => {
+        await walletChange(delta);
+    });
+
     supabase.channel('db-changes')
-        .on('postgres_changes', { event:'UPDATE', schema:'public', table:'bank' }, (p) => {
-            sharedBank = p.new.total_coins; sharedHistory = p.new.history;
-            renderUI(); bumpBankNum();
-        })
-        .on('postgres_changes', { event:'UPDATE', schema:'public', table:'players' }, () => updateRankingUI())
-        .on('postgres_changes', { event:'*',      schema:'public', table:'complaints' }, () => loadComplaints())
+        .on('postgres_changes',{event:'UPDATE',schema:'public',table:'bank'},(p)=>{ sharedBank=p.new.total_coins; sharedHistory=p.new.history; renderUI(); bumpBankNum(); })
+        .on('postgres_changes',{event:'UPDATE',schema:'public',table:'players'},()=>updateRankingUI())
+        .on('postgres_changes',{event:'*',schema:'public',table:'complaints'},()=>loadComplaints())
         .subscribe();
 
     document.getElementById("login-screen").classList.remove('active');
     document.getElementById("game-screen").classList.add('active');
-    renderUI();
-    updateRankingUI();
-    renderRewardsUI();
-    updateBackpackBadge();
+    renderUI(); updateRankingUI(); renderRewardsUI(); updateBackpackBadge();
 }
 
-// ==========================
-// REWARD DIARIO + RACHA
-// ==========================
 async function checkDailyReward(user) {
-    const hoy  = new Date().toISOString().split('T')[0];
-    const ayer = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-    if (user.last_claim === hoy) return;
-
-    const newStreak = user.last_claim === ayer ? (user.streak || 0) + 1 : 1;
-    myWallet += 2;
-    myStreak  = newStreak;
-
-    showMessage(`¡Hola ${currentPlayer}! 🐾 +2 monedas · Racha: ${newStreak} 🔥`, 'success');
+    const hoy=new Date().toISOString().split('T')[0];
+    const ayer=new Date(Date.now()-86400000).toISOString().split('T')[0];
+    if (user.last_claim===hoy) return;
+    const newStreak=user.last_claim===ayer?(user.streak||0)+1:1;
+    myWallet+=2; myStreak=newStreak;
+    showMessage(`¡Hola ${currentPlayer}! 🐾 +2 monedas · Racha: ${newStreak} 🔥`,'success');
     spawnCoins(4);
-
-    await supabase.from("players").update({
-        wallet_coins: myWallet, last_claim: hoy, streak: newStreak,
-    }).eq("username", currentPlayer);
-
-    checkNewRewards();
-    renderRewardsUI();
+    await supabase.from("players").update({wallet_coins:myWallet,last_claim:hoy,streak:newStreak}).eq("username",currentPlayer);
+    checkNewRewards(); renderRewardsUI();
 }
 
 async function refreshSharedData() {
-    const { data: b, error } = await supabase.from("bank").select("*").eq("id", 1).single();
-    if (error) { console.error("Error banco:", error); return; }
-    if (b) { sharedBank = b.total_coins; sharedHistory = b.history || []; }
+    const {data:b,error}=await supabase.from("bank").select("*").eq("id",1).single();
+    if (error){console.error(error);return;}
+    if (b){sharedBank=b.total_coins;sharedHistory=b.history||[];}
 }
 
-// ==========================
-// LOGIN / LOGOUT
-// ==========================
 document.getElementById("franco-btn").onclick = () => loadData("Franco");
 document.getElementById("jess-btn").onclick   = () => loadData("Jess");
 document.getElementById("logout-btn").onclick  = () => {
-    currentPlayer = null;
-    myWallet = 0; myStreak = 0; myTotalDonated = 0;
-    myClaimedRewards = []; myVideos = [];
+    currentPlayer=null; myWallet=0; myStreak=0; myTotalDonated=0; myClaimedRewards=[]; myVideos=[];
     document.getElementById("game-screen").classList.remove('active');
     document.getElementById("login-screen").classList.add('active');
 };

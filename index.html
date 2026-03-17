@@ -4,26 +4,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta charset="UTF-8">
   <title>Pusheen Bank 🐾</title>
-
-  <!-- ===== PWA META TAGS ===== -->
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#ff6fa8">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Pusheen 🐾">
-  <meta name="application-name" content="Pusheen Bank 🐾">
-  <meta name="msapplication-TileColor" content="#ff6fa8">
-  <meta name="description" content="El banco de Pusheen para Franco y Jess">
-
-  <!-- Icono para iOS (no usa manifest) -->
   <link rel="apple-touch-icon" href="assets/img/icon.png">
   <link rel="icon" type="image/png" href="assets/img/icon.png">
-
-  <!-- Fuentes -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/main.css">
+  <link rel="stylesheet" href="assets/css/games.css">
 </head>
 <body>
 
@@ -45,14 +37,12 @@
         <span class="profile-name">Jess</span>
       </button>
     </div>
-
-    <!-- Banner instalar app (aparece automático si no está instalada) -->
     <div id="install-banner" class="install-banner" style="display:none;">
       <div class="install-banner-content">
         <img src="assets/img/icon.png" class="install-icon" alt="icono">
         <div class="install-text">
           <strong>Instalar Pusheen Bank 🐾</strong>
-          <span>Úsala como app en tu cel</span>
+          <span>Usala como app en tu cel</span>
         </div>
       </div>
       <div class="install-actions">
@@ -60,14 +50,12 @@
         <button id="install-dismiss" class="btn-dismiss">✕</button>
       </div>
     </div>
-
   </div>
 </div>
 
 <!-- ===== JUEGO ===== -->
 <div id="game-screen" class="screen">
 
-  <!-- Header -->
   <header class="app-header">
     <div class="header-player">
       <span id="player-avatar">🐾</span>
@@ -79,56 +67,50 @@
     </div>
     <div class="header-actions">
       <button id="backpack-btn" class="btn-icon" title="Mi mochila de videos">
-        🎒
-        <span id="backpack-badge" class="notif-badge" style="display:none;">0</span>
+        🎒<span id="backpack-badge" class="notif-badge" style="display:none;">0</span>
       </button>
       <button id="notif-btn" class="btn-icon" title="Notificaciones">
-        🔔
-        <span id="notif-badge" class="notif-badge" style="display:none;">0</span>
+        🔔<span id="notif-badge" class="notif-badge" style="display:none;">0</span>
       </button>
       <button id="logout-btn" class="btn-icon" title="Salir">↩</button>
     </div>
   </header>
 
-  <!-- Pusheen + banco -->
   <section class="pusheen-section">
     <div class="bank-bubble">
       <span class="bank-num" id="coin-count">0</span>
       <span class="bank-label">monedas de Pusheen</span>
     </div>
     <div class="pusheen-wrap">
-      <img id="pusheen-main-img"
-           src="assets/img/pusheen.gif"
-           class="pusheen-main" alt="Pusheen">
+      <img id="pusheen-main-img" src="assets/img/pusheen.gif" class="pusheen-main" alt="Pusheen">
       <div id="coin-particles" class="coin-particles"></div>
     </div>
   </section>
 
-  <!-- Controles -->
   <section class="controls-section">
     <div class="quick-btns">
-      <button class="quick-btn give" onclick="handleCoin('add',1)">+1 🪙</button>
-      <button class="quick-btn give" onclick="handleCoin('add',5)">+5 🪙</button>
+      <button class="quick-btn give"  onclick="handleCoin('add',1)">+1 🪙</button>
+      <button class="quick-btn give"  onclick="handleCoin('add',5)">+5 🪙</button>
       <button class="quick-btn steal" onclick="handleCoin('remove',1)">-1 ❌</button>
       <button class="quick-btn steal" onclick="handleCoin('remove',5)">-5 ❌</button>
     </div>
     <div class="custom-row">
       <input type="number" id="custom-val" placeholder="Otra cantidad..." min="1">
-      <button class="btn-give" onclick="handleCustom('add')">Dar 🪙</button>
+      <button class="btn-give"  onclick="handleCustom('add')">Dar 🪙</button>
       <button class="btn-steal" onclick="handleCustom('remove')">Robar ❌</button>
     </div>
     <div id="action-message" class="action-message" style="display:none;"></div>
   </section>
 
-  <!-- Tabs -->
+  <!-- TABS — ahora con Juegos -->
   <div class="tabs">
     <button class="tab active" data-tab="ranking">🏆 Ranking</button>
-    <button class="tab" data-tab="rewards">🎁 Recompensas</button>
+    <button class="tab" data-tab="games">🎮 Juegos</button>
+    <button class="tab" data-tab="rewards">🎁 Premios</button>
     <button class="tab" data-tab="history">📜 Historial</button>
     <button class="tab" data-tab="complaints">🚨 Denuncias</button>
   </div>
 
-  <!-- TAB RANKING -->
   <section id="tab-ranking" class="tab-content active">
     <div class="ranking-hero">
       <img id="ranking-hero-img" src="assets/img/corona1.png" alt="Campeón" class="ranking-hero-img">
@@ -137,7 +119,9 @@
     <div id="ranking-list" class="ranking-list"></div>
   </section>
 
-  <!-- TAB RECOMPENSAS -->
+  <!-- TAB JUEGOS -->
+  <section id="tab-games" class="tab-content"></section>
+
   <section id="tab-rewards" class="tab-content">
     <div class="rewards-header">
       <img src="assets/img/pusheen.gif" alt="Pusheen" class="rewards-pusheen">
@@ -153,12 +137,10 @@
     <div class="rewards-grid" id="streak-rewards-grid"></div>
   </section>
 
-  <!-- TAB HISTORIAL -->
   <section id="tab-history" class="tab-content">
     <div id="history" class="history-list"></div>
   </section>
 
-  <!-- TAB DENUNCIAS -->
   <section id="tab-complaints" class="tab-content">
     <div class="complaints-hero">
       <img src="assets/img/juez.png" alt="Juez Pusheen" class="complaints-hero-img">
@@ -177,7 +159,7 @@
         <option value="Otro">📝 Otro</option>
       </select>
       <label class="form-label">¿Qué pasó?</label>
-      <textarea id="c-description" class="form-textarea" placeholder="Describe lo que pasó con todos los detalles..."></textarea>
+      <textarea id="c-description" class="form-textarea" placeholder="Describe lo que pasó..."></textarea>
       <label class="form-label">Nivel de gravedad</label>
       <div class="severity-btns">
         <button type="button" class="severity-btn" data-val="leve">😐 Leve</button>
@@ -198,29 +180,18 @@
 
 </div>
 
-<!-- ===== PANEL MOCHILA ===== -->
+<!-- PANELES -->
 <div id="backpack-panel" class="side-panel" style="display:none;">
-  <div class="side-panel-header">
-    <span>🎒 Mi Mochila de Videos</span>
-    <button id="backpack-close" class="btn-icon">✕</button>
-  </div>
-  <div id="backpack-list" class="backpack-list">
-    <p class="notif-empty">Aún no ganaste videos 🐾<br><small>Canjea recompensas para ganarlos</small></p>
-  </div>
+  <div class="side-panel-header"><span>🎒 Mi Mochila de Videos</span><button id="backpack-close" class="btn-icon">✕</button></div>
+  <div id="backpack-list" class="backpack-list"><p class="notif-empty">Aún no ganaste videos 🐾<br><small>Canjea recompensas para ganarlos</small></p></div>
 </div>
-
-<!-- ===== PANEL NOTIFICACIONES ===== -->
 <div id="notif-panel" class="side-panel" style="display:none;">
-  <div class="side-panel-header">
-    <span>Notificaciones 🔔</span>
-    <button id="notif-close" class="btn-icon">✕</button>
-  </div>
+  <div class="side-panel-header"><span>Notificaciones 🔔</span><button id="notif-close" class="btn-icon">✕</button></div>
   <div id="notif-list" class="notif-list"></div>
 </div>
-
 <div id="side-overlay" class="notif-overlay" style="display:none;"></div>
 
-<!-- ===== MODAL RECOMPENSA ===== -->
+<!-- MODAL RECOMPENSA -->
 <div id="reward-modal" class="reward-modal" style="display:none;">
   <div class="reward-modal-box">
     <div class="reward-modal-confetti" id="reward-confetti"></div>
@@ -238,7 +209,7 @@
 </div>
 <div id="reward-overlay" class="reward-overlay" style="display:none;"></div>
 
-<!-- ===== TOAST ACTUALIZACIÓN PWA ===== -->
+<!-- TOAST ACTUALIZACIÓN PWA -->
 <div id="update-toast" class="update-toast" style="display:none;">
   <span>🐾 Nueva versión disponible</span>
   <button id="update-btn" class="btn-update">Actualizar</button>
@@ -246,64 +217,43 @@
 
 <script type="module" src="assets/js/main.js"></script>
 <script>
-  // ===== SERVICE WORKER =====
+  // SW
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js').then(reg => {
-        console.log('🐾 SW registrado:', reg.scope);
-
-        // Detectar actualización disponible
         reg.addEventListener('updatefound', () => {
-          const newWorker = reg.installing;
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          const nw = reg.installing;
+          nw.addEventListener('statechange', () => {
+            if (nw.state === 'installed' && navigator.serviceWorker.controller)
               document.getElementById('update-toast').style.display = 'flex';
-            }
           });
         });
-      }).catch(err => console.warn('SW error:', err));
+      });
     });
   }
-
-  // Botón actualizar PWA
   document.getElementById('update-btn').onclick = () => {
     navigator.serviceWorker.getRegistration().then(reg => {
-      if (reg?.waiting) {
-        reg.waiting.postMessage('skipWaiting');
-        window.location.reload();
-      }
+      if (reg?.waiting) { reg.waiting.postMessage('skipWaiting'); window.location.reload(); }
     });
   };
 
-  // ===== BANNER INSTALAR =====
+  // Instalar PWA
   let deferredPrompt = null;
   window.addEventListener('beforeinstallprompt', e => {
-    e.preventDefault();
-    deferredPrompt = e;
+    e.preventDefault(); deferredPrompt = e;
     document.getElementById('install-banner').style.display = 'flex';
   });
-
   document.getElementById('install-btn').onclick = async () => {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      document.getElementById('install-banner').style.display = 'none';
-    }
+    if (outcome === 'accepted') document.getElementById('install-banner').style.display = 'none';
     deferredPrompt = null;
   };
+  document.getElementById('install-dismiss').onclick = () => document.getElementById('install-banner').style.display = 'none';
+  window.addEventListener('appinstalled', () => { document.getElementById('install-banner').style.display = 'none'; });
 
-  document.getElementById('install-dismiss').onclick = () => {
-    document.getElementById('install-banner').style.display = 'none';
-  };
-
-  // Ocultar banner si ya está instalada
-  window.addEventListener('appinstalled', () => {
-    document.getElementById('install-banner').style.display = 'none';
-    deferredPrompt = null;
-  });
-
-  // ===== TABS =====
+  // Tabs
   document.querySelectorAll('.tab').forEach(tab => {
     tab.addEventListener('click', () => {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -313,7 +263,7 @@
     });
   });
 
-  // Severity buttons
+  // Severity
   document.querySelectorAll('.severity-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.severity-btn').forEach(b => b.classList.remove('active'));
@@ -322,7 +272,7 @@
     });
   });
 
-  // Formulario denuncia
+  // Denuncia form
   document.getElementById('btn-new-complaint').onclick = () => {
     document.getElementById('complaint-form').style.display = 'block';
     document.getElementById('btn-new-complaint').style.display = 'none';
@@ -333,15 +283,9 @@
     document.getElementById('btn-new-complaint').style.display = 'block';
   };
 
-  // Paneles laterales
-  function openPanel(id) {
-    document.getElementById(id).style.display = 'flex';
-    document.getElementById('side-overlay').style.display = 'block';
-  }
-  function closeAllPanels() {
-    ['backpack-panel','notif-panel'].forEach(id => document.getElementById(id).style.display = 'none');
-    document.getElementById('side-overlay').style.display = 'none';
-  }
+  // Paneles
+  function openPanel(id) { document.getElementById(id).style.display='flex'; document.getElementById('side-overlay').style.display='block'; }
+  function closeAllPanels() { ['backpack-panel','notif-panel'].forEach(id=>document.getElementById(id).style.display='none'); document.getElementById('side-overlay').style.display='none'; }
   document.getElementById('backpack-btn').onclick = () => { openPanel('backpack-panel'); if (window.renderBackpack) window.renderBackpack(); };
   document.getElementById('backpack-close').onclick = closeAllPanels;
   document.getElementById('notif-btn').onclick = () => { openPanel('notif-panel'); if (window.markNotifsSeen) window.markNotifsSeen(); };
@@ -352,25 +296,20 @@
   document.getElementById('reward-modal-close').onclick = closeRewardModal;
   document.getElementById('reward-overlay').onclick = closeRewardModal;
   function closeRewardModal() {
-    document.getElementById('reward-modal').style.display = 'none';
-    document.getElementById('reward-overlay').style.display = 'none';
-    document.getElementById('reward-video-frame').innerHTML = '';
-    document.getElementById('reward-video-wrap').style.display = 'none';
+    document.getElementById('reward-modal').style.display='none';
+    document.getElementById('reward-overlay').style.display='none';
+    document.getElementById('reward-video-frame').innerHTML='';
+    document.getElementById('reward-video-wrap').style.display='none';
   }
 
   // Partículas monedas
-  window.spawnCoins = function(count = 6) {
-    const container = document.getElementById('coin-particles');
-    if (!container) return;
-    for (let i = 0; i < count; i++) {
-      const coin = document.createElement('span');
-      coin.textContent = '🪙';
-      coin.className = 'coin-particle';
-      coin.style.left = (25 + Math.random() * 50) + '%';
-      coin.style.animationDelay = (Math.random() * 0.4) + 's';
-      coin.style.fontSize = (14 + Math.random() * 10) + 'px';
-      container.appendChild(coin);
-      setTimeout(() => coin.remove(), 1400);
+  window.spawnCoins = function(count=6) {
+    const c=document.getElementById('coin-particles'); if(!c)return;
+    for(let i=0;i<count;i++){
+      const coin=document.createElement('span'); coin.textContent='🪙'; coin.className='coin-particle';
+      coin.style.left=(25+Math.random()*50)+'%'; coin.style.animationDelay=(Math.random()*0.4)+'s';
+      coin.style.fontSize=(14+Math.random()*10)+'px'; c.appendChild(coin);
+      setTimeout(()=>coin.remove(),1400);
     }
   };
 </script>

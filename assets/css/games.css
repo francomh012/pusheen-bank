@@ -1,0 +1,224 @@
+/* ==============================
+   MINI-JUEGOS — games.css
+   Agregar al final de main.css
+============================== */
+
+/* Header juegos */
+.games-header {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 8px; margin-bottom: 20px; text-align: center;
+}
+.games-pusheen {
+  width: 90px; height: 90px; object-fit: contain;
+  animation: float 3s ease-in-out infinite;
+  filter: drop-shadow(0 4px 12px rgba(200,80,140,0.2));
+}
+.games-title { font-size: 1.3rem; font-weight: 900; color: var(--pink-deep); }
+.games-sub   { font-size: 0.85rem; color: var(--text-soft); font-weight: 600; }
+.games-sub strong { color: var(--pink-deep); }
+
+/* Card de juego */
+.game-card {
+  background: var(--white);
+  border: 2px solid var(--pink-soft);
+  border-radius: var(--radius-xl);
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.game-card-header {
+  display: flex; align-items: center; gap: 14px;
+}
+.game-icon { font-size: 2.2rem; }
+.game-name { font-size: 1.05rem; font-weight: 900; color: var(--pink-deep); }
+.game-desc { font-size: 0.8rem; font-weight: 600; color: var(--text-soft); margin-top: 2px; }
+
+/* Resultado del juego */
+.game-result {
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  font-size: 0.92rem;
+  font-weight: 800;
+  text-align: center;
+  animation: fadeSlide 0.3s ease;
+}
+.game-result-win  { background: #e0f5e9; color: #1a7a3a; border: 2px solid #a8e6c0; }
+.game-result-lose { background: var(--red-soft); color: var(--red-deep); border: 2px solid #ffb3b3; }
+.game-result-tie  { background: #fff3e0; color: #c05000; border: 2px solid #ffd199; }
+.game-result-error{ background: var(--red-soft); color: var(--red-deep); border: 2px solid #ffb3b3; }
+
+/* Botón jugar */
+.btn-play {
+  width: 100%;
+  background: linear-gradient(135deg, var(--pink-main), #ff8fbf);
+  color: var(--white);
+  border: none;
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 1rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn-play:active   { transform: scale(0.97); }
+.btn-play:disabled { opacity: 0.5; transform: none; cursor: not-allowed; }
+.btn-cost {
+  background: rgba(255,255,255,0.25);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+/* ==============================
+   TRAGAMONEDAS
+============================== */
+.slot-machine {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  position: relative;
+}
+.slot-reels {
+  display: flex;
+  gap: 8px;
+  background: linear-gradient(135deg, #3a1a2e, #5a2a4e);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  box-shadow: inset 0 4px 16px rgba(0,0,0,0.3), var(--shadow-lg);
+  border: 3px solid var(--pink-dark);
+  position: relative;
+}
+/* Brillo superior */
+.slot-reels::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 40%;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.08), transparent);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  pointer-events: none;
+}
+
+.slot-reel {
+  width: 72px; height: 72px;
+  background: var(--white);
+  border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.4rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2), inset 0 1px 3px rgba(255,255,255,0.5);
+  transition: transform 0.1s;
+  border: 2px solid var(--pink-soft);
+  user-select: none;
+}
+.slot-reel.spinning {
+  animation: reelSpin 0.08s linear infinite;
+  filter: blur(1px);
+}
+.slot-reel.stop {
+  animation: reelStop 0.3s cubic-bezier(.34,1.56,.64,1);
+}
+.slot-reel.jackpot {
+  animation: jackpotPulse 0.4s ease infinite;
+  border-color: var(--gold);
+  background: linear-gradient(135deg, #fffbe6, #fff5cc);
+}
+@keyframes reelSpin {
+  0%   { transform: translateY(-4px); }
+  50%  { transform: translateY(4px); }
+  100% { transform: translateY(-4px); }
+}
+@keyframes reelStop {
+  0%   { transform: scale(1.2); }
+  60%  { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+@keyframes jackpotPulse {
+  0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,201,77,0.4); }
+  50%     { transform: scale(1.08); box-shadow: 0 0 0 8px rgba(255,201,77,0); }
+}
+
+.slot-line {
+  width: 80%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--pink-main), transparent);
+  margin-top: 4px;
+  opacity: 0.6;
+}
+
+/* ==============================
+   PIEDRA PAPEL TIJERA
+============================== */
+.ppt-arena {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+.ppt-side {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  flex: 1;
+}
+.ppt-label {
+  font-size: 0.75rem; font-weight: 800;
+  color: var(--text-soft); text-transform: uppercase; letter-spacing: 0.5px;
+}
+.ppt-choice {
+  width: 76px; height: 76px;
+  background: var(--pink-light);
+  border: 2.5px solid var(--pink-soft);
+  border-radius: var(--radius-lg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.6rem;
+  transition: all 0.3s cubic-bezier(.34,1.56,.64,1);
+  box-shadow: var(--shadow);
+}
+.ppt-choice.ppt-winner {
+  border-color: var(--gold);
+  background: linear-gradient(135deg, #fffbe6, #fff5cc);
+  transform: scale(1.12);
+  box-shadow: 0 0 20px rgba(255,201,77,0.4);
+}
+.ppt-choice.ppt-loser {
+  border-color: #ffb3b3;
+  background: var(--red-soft);
+  transform: scale(0.9);
+  opacity: 0.7;
+}
+.ppt-vs {
+  font-size: 1.1rem; font-weight: 900;
+  color: var(--text-soft);
+  padding: 0 4px;
+}
+
+.ppt-buttons {
+  display: flex; gap: 10px;
+}
+.btn-ppt {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: var(--white);
+  border: 2.5px solid var(--pink-soft);
+  border-radius: var(--radius-lg);
+  padding: 12px 8px;
+  font-family: 'Nunito', sans-serif;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(.34,1.56,.64,1);
+  box-shadow: var(--shadow);
+}
+.btn-ppt:hover  { border-color: var(--pink-main); transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+.btn-ppt:active { transform: scale(0.93); }
+.btn-ppt:disabled { opacity: 0.45; transform: none; cursor: not-allowed; }
+.btn-ppt span:first-child { font-size: 1.8rem; }
+.btn-ppt span:last-child  { font-size: 0.72rem; font-weight: 800; color: var(--text-mid); }
