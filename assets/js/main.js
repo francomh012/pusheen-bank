@@ -1,13 +1,10 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+import { db as supabase, storage } from './supabase-client.js';
 import { renderGamesTab } from './games.js';
 
 // ==========================
 // CONFIGURACIÓN SUPABASE
 // ⚠️ Reemplaza con tu anon key real (empieza con eyJ...)
 // ==========================
-const SUPABASE_URL = 'https://erblqbqsjqhatarcpzjs.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVyYmxxYnFzanFoYXRhcmNwempzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5Nzk4NTUsImV4cCI6MjA4NzU1NTg1NX0.p3WM4tO9vDIc1gtS6kg3FqYxMRHFhYUo2wcsHDVKZEk'; // 👈 CAMBIA ESTO
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ==========================
 // VIDEOS DE PUSHEEN
