@@ -242,6 +242,8 @@ window.handleCoin = async (action, amount = 1) => {
 function renderUI() {
     coinDisplay.textContent   = sharedBank;
     walletDisplay.textContent = myWallet;
+    const gfHeader = document.getElementById('gf-wallet-header-num');
+    if (gfHeader) gfHeader.textContent = myWallet + ' 🪙';
     historyDiv.innerHTML = [...sharedHistory].reverse().slice(0, 6)
         .map(m => `<div class="history-item">${m}</div>`).join("");
     updateNegativeStyles();

@@ -53,7 +53,7 @@
   </div>
 </div>
 
-<!-- ===== JUEGO ===== -->
+<!-- ===== JUEGO PRINCIPAL ===== -->
 <div id="game-screen" class="screen">
 
   <header class="app-header">
@@ -102,13 +102,13 @@
     <div id="action-message" class="action-message" style="display:none;"></div>
   </section>
 
-  <!-- TABS — ahora con Juegos -->
+  <!-- TABS — solo iconos -->
   <div class="tabs">
-    <button class="tab active" data-tab="ranking">🏆 Ranking</button>
-    <button class="tab" data-tab="games">🎮 Juegos</button>
-    <button class="tab" data-tab="rewards">🎁 Premios</button>
-    <button class="tab" data-tab="history">📜 Historial</button>
-    <button class="tab" data-tab="complaints">🚨 Denuncias</button>
+    <button class="tab active" data-tab="ranking"   title="Ranking">🏆</button>
+    <button class="tab"        data-tab="games"     title="Juegos">🎮</button>
+    <button class="tab"        data-tab="rewards"   title="Recompensas">🎁</button>
+    <button class="tab"        data-tab="history"   title="Historial">📜</button>
+    <button class="tab"        data-tab="complaints" title="Denuncias">🚨</button>
   </div>
 
   <section id="tab-ranking" class="tab-content active">
@@ -119,7 +119,6 @@
     <div id="ranking-list" class="ranking-list"></div>
   </section>
 
-  <!-- TAB JUEGOS -->
   <section id="tab-games" class="tab-content"></section>
 
   <section id="tab-rewards" class="tab-content">
@@ -180,6 +179,19 @@
 
 </div>
 
+<!-- ===== PANTALLA COMPLETA DE JUEGO ===== -->
+<div id="game-fullscreen" class="game-fullscreen">
+  <header class="game-fullscreen-header">
+    <button class="btn-back" id="btn-back-game">← Menú</button>
+    <span class="game-fullscreen-title" id="game-fullscreen-title">Juego</span>
+    <div class="gf-wallet-header">
+      <span class="gf-wallet-header-label">Monedas</span>
+      <span class="gf-wallet-header-num" id="gf-wallet-header-num">0 🪙</span>
+    </div>
+  </header>
+  <div class="game-fullscreen-content" id="game-fullscreen-content"></div>
+</div>
+
 <!-- PANELES -->
 <div id="backpack-panel" class="side-panel" style="display:none;">
   <div class="side-panel-header"><span>🎒 Mi Mochila de Videos</span><button id="backpack-close" class="btn-icon">✕</button></div>
@@ -209,7 +221,7 @@
 </div>
 <div id="reward-overlay" class="reward-overlay" style="display:none;"></div>
 
-<!-- TOAST ACTUALIZACIÓN PWA -->
+<!-- TOAST PWA -->
 <div id="update-toast" class="update-toast" style="display:none;">
   <span>🐾 Nueva versión disponible</span>
   <button id="update-btn" class="btn-update">Actualizar</button>
@@ -224,7 +236,7 @@
         reg.addEventListener('updatefound', () => {
           const nw = reg.installing;
           nw.addEventListener('statechange', () => {
-            if (nw.state === 'installed' && navigator.serviceWorker.controller)
+            if (nw.state==='installed' && navigator.serviceWorker.controller)
               document.getElementById('update-toast').style.display = 'flex';
           });
         });
@@ -237,7 +249,7 @@
     });
   };
 
-  // Instalar PWA
+  // PWA install
   let deferredPrompt = null;
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault(); deferredPrompt = e;
@@ -247,11 +259,11 @@
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') document.getElementById('install-banner').style.display = 'none';
+    if (outcome==='accepted') document.getElementById('install-banner').style.display = 'none';
     deferredPrompt = null;
   };
   document.getElementById('install-dismiss').onclick = () => document.getElementById('install-banner').style.display = 'none';
-  window.addEventListener('appinstalled', () => { document.getElementById('install-banner').style.display = 'none'; });
+  window.addEventListener('appinstalled', () => document.getElementById('install-banner').style.display = 'none');
 
   // Tabs
   document.querySelectorAll('.tab').forEach(tab => {
@@ -272,11 +284,11 @@
     });
   });
 
-  // Denuncia form
+  // Denuncia
   document.getElementById('btn-new-complaint').onclick = () => {
     document.getElementById('complaint-form').style.display = 'block';
     document.getElementById('btn-new-complaint').style.display = 'none';
-    document.getElementById('complaint-form').scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('complaint-form').scrollIntoView({ behavior:'smooth' });
   };
   document.getElementById('btn-cancel-complaint').onclick = () => {
     document.getElementById('complaint-form').style.display = 'none';
@@ -286,11 +298,16 @@
   // Paneles
   function openPanel(id) { document.getElementById(id).style.display='flex'; document.getElementById('side-overlay').style.display='block'; }
   function closeAllPanels() { ['backpack-panel','notif-panel'].forEach(id=>document.getElementById(id).style.display='none'); document.getElementById('side-overlay').style.display='none'; }
-  document.getElementById('backpack-btn').onclick = () => { openPanel('backpack-panel'); if (window.renderBackpack) window.renderBackpack(); };
+  document.getElementById('backpack-btn').onclick = () => { openPanel('backpack-panel'); if(window.renderBackpack) window.renderBackpack(); };
   document.getElementById('backpack-close').onclick = closeAllPanels;
-  document.getElementById('notif-btn').onclick = () => { openPanel('notif-panel'); if (window.markNotifsSeen) window.markNotifsSeen(); };
+  document.getElementById('notif-btn').onclick = () => { openPanel('notif-panel'); if(window.markNotifsSeen) window.markNotifsSeen(); };
   document.getElementById('notif-close').onclick = closeAllPanels;
   document.getElementById('side-overlay').onclick = closeAllPanels;
+
+  // Volver del juego al menú
+  document.getElementById('btn-back-game').onclick = () => {
+    document.getElementById('game-fullscreen').classList.remove('active');
+  };
 
   // Modal recompensa
   document.getElementById('reward-modal-close').onclick = closeRewardModal;
@@ -302,7 +319,7 @@
     document.getElementById('reward-video-wrap').style.display='none';
   }
 
-  // Partículas monedas
+  // Partículas
   window.spawnCoins = function(count=6) {
     const c=document.getElementById('coin-particles'); if(!c)return;
     for(let i=0;i<count;i++){
