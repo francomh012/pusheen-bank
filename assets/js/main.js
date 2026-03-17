@@ -3,7 +3,7 @@ import { renderGamesTab } from './games.js';
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
 const SUPABASE_URL = 'https://erblqbqsjqhatarcpzjs.supabase.co';
-const SUPABASE_KEY = 'TU_ANON_KEY_AQUI'; // tu clave real
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVyYmxxYnFzanFoYXRhcmNwempzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5Nzk4NTUsImV4cCI6MjA4NzU1NTg1NX0.p3WM4tO9vDIc1gtS6kg3FqYxMRHFhYUo2wcsHDVKZEk'; // tu clave real
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 // ==========================
 // CONFIGURACIÓN SUPABASE
