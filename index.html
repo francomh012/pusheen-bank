@@ -4,104 +4,104 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta charset="UTF-8">
   <title>Pusheen Bank 🐾</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/main.css">
 </head>
-
 <body>
 
-<!-- LOGIN -->
-<div id="login-screen" class="card">
-  <h2>¿Quién eres? 🐾</h2>
-  <div id="profile-selector">
-    <button id="franco-btn">Franco</button>
-    <button id="jess-btn">Jess</button>
+<!-- ===== LOGIN ===== -->
+<div id="login-screen" class="screen active">
+  <div class="login-wrap">
+    <div class="login-logo">
+      <img src="assets/img/pusheen.gif" alt="Pusheen">
+    </div>
+    <h1 class="login-title">Pusheen Bank</h1>
+    <p class="login-sub">¿Quién eres hoy? 🐾</p>
+    <div class="profile-grid">
+      <button id="franco-btn" class="profile-btn">
+        <span class="profile-avatar">🧔</span>
+        <span class="profile-name">Franco</span>
+      </button>
+      <button id="jess-btn" class="profile-btn">
+        <span class="profile-avatar">👩</span>
+        <span class="profile-name">Jess</span>
+      </button>
+    </div>
   </div>
 </div>
 
+<!-- ===== JUEGO ===== -->
+<div id="game-screen" class="screen">
 
-<!-- PANTALLA PRINCIPAL -->
-<div id="game-screen" style="display:none;">
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-player">
+      <span id="player-avatar">🐾</span>
+      <span id="player-name">—</span>
+    </div>
+    <div class="header-wallet">
+      <span class="wallet-label">Tu billetera</span>
+      <span class="wallet-amount"><span id="available-coins">0</span> 🪙</span>
+    </div>
+    <button id="logout-btn" class="btn-icon" title="Salir">↩</button>
+  </header>
 
-  <div class="available-container">
-    <span id="available-coins">0</span> 🪙
-  </div>
+  <!-- Pusheen + banco -->
+  <section class="pusheen-section">
+    <div class="bank-bubble">
+      <span class="bank-num" id="coin-count">0</span>
+      <span class="bank-label">monedas de Pusheen</span>
+    </div>
+    <div class="pusheen-wrap">
+      <img src="assets/img/pusheen.gif" class="pusheen-main" alt="Pusheen">
+    </div>
+  </section>
 
-  <h1>Pusheen 🐾</h1>
-
-  <button id="events-btn">🎉 Eventos</button>
-
-  <div class="card main-controls">
-
-    <p>Monedas de Pusheen</p>
-    <h2 id="coin-count">0</h2>
-
-    <img src="assets/img/pusheen.gif" class="pusheen-img">
-
-    <div class="input-group">
-      <button class="btn-small" onclick="handleCoin('add',1)">+1</button>
-      <input type="number" id="custom-val" placeholder="Cant.">
-      <button class="btn-small btn-red" onclick="handleCoin('remove',1)">-1</button>
+  <!-- Controles -->
+  <section class="controls-section">
+    <div class="quick-btns">
+      <button class="quick-btn give" onclick="handleCoin('add',1)">+1 🪙</button>
+      <button class="quick-btn give" onclick="handleCoin('add',5)">+5 🪙</button>
+      <button class="quick-btn steal" onclick="handleCoin('remove',1)">-1 ❌</button>
+      <button class="quick-btn steal" onclick="handleCoin('remove',5)">-5 ❌</button>
     </div>
 
-    <div class="main-actions">
-      <button onclick="handleCustom('add')">Dar monedas 🪙</button>
-      <button onclick="handleCustom('remove')" class="btn-red">Robar monedas ❌</button>
+    <div class="custom-row">
+      <input type="number" id="custom-val" placeholder="Otra cantidad..." min="1">
+      <button class="btn-give" onclick="handleCustom('add')">Dar 🪙</button>
+      <button class="btn-steal" onclick="handleCustom('remove')">Robar ❌</button>
     </div>
 
     <div id="action-message" class="action-message" style="display:none;"></div>
+  </section>
 
-    <button id="logout-btn">Cerrar sesión</button>
-
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" data-tab="ranking">🏆 Ranking</button>
+    <button class="tab" data-tab="history">📜 Historial</button>
   </div>
 
-  <div id="ranking" class="card">
-    <h3>🏆 Ranking Semanal</h3>
-    <div id="ranking-list"></div>
-  </div>
+  <section id="tab-ranking" class="tab-content active">
+    <div id="ranking-list" class="ranking-list"></div>
+  </section>
 
-  <div class="card">
-    <h3>Historial 🐾</h3>
-    <div id="history"></div>
-  </div>
-
-</div>
-
-
-<!-- EVENTOS -->
-<div id="events-screen" style="display:none;">
-
-  <div class="card event-card">
-
-    <h2>🌸 Evento Especial</h2>
-    <h3>8 de Marzo - Día Internacional de la Mujer</h3>
-
-    <img src="assets/img/pusheen_1.png" class="event-img-top">
-
-    <p class="event-message">
-Mi amor, feliz día 💗  
-Hoy pensé mucho en ti y en lo afortunado que soy de tenerte en mi vida, a veces la vida cambia de formas que uno no espera, y en mi caso cambió para bien desde que llegaste tú, no solo porque compartimos momentos bonitos, sino porque contigo encontré a alguien que me entiende, que me da tranquilidad y que hace que incluso los días normales se sientan especiales 💕🫂  
-
-Me gusta saber que existes en mi vida, saber que hay una persona con la que puedo hablar de todo, reír, soñar y también apoyarme cuando las cosas no son tan fáciles, tu forma de ser tiene algo muy especial que me hace admirarte mucho más de lo que quizás imaginas 💗  
-
-Quiero que recuerdes siempre que eres una mujer increíble, tienes una manera muy bonita de ver la vida y un corazón que vale muchísimo, yo valoro cada detalle tuyo, cada palabra, cada gesto y cada momento que compartimos, porque contigo todo se siente más real y más bonito 💕🫂  
-
-Tal vez no siempre soy perfecto ni tengo las palabras exactas, pero lo que siento por ti es real, me importas profundamente y quiero seguir construyendo cosas bonitas contigo, creciendo juntos, cumpliendo metas y acompañándonos en todo lo que venga 💗  
-
-Hoy solo quiero que sepas que tenerte en mi vida es algo que agradezco mucho, feliz día mi amor, gracias por existir, por tu cariño, por tu forma de mirarme y por todo lo que haces sentir a mi corazón 💕🫂  
-
-Te amo mi niña peshosha, bella, hermosa, guapa, perfecta, preciosa, encantadora, princesa, mi reina y dueña de mi corazón 💗💕🫂
-    </p>
-
-    <img src="assets/img/pusheen_2.gif" class="event-img-bottom">
-
-    <button id="claim-btn">🎁 Reclamar 100 monedas</button>
-    <button id="back-btn">⬅ Volver</button>
-
-  </div>
+  <section id="tab-history" class="tab-content">
+    <div id="history" class="history-list"></div>
+  </section>
 
 </div>
 
 <script type="module" src="assets/js/main.js"></script>
-
+<script>
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    });
+  });
+</script>
 </body>
 </html>

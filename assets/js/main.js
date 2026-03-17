@@ -17,6 +17,8 @@ let sharedBank = 0;
 let sharedHistory = [];
 let isSaving = false;
 
+const AVATARS = { Franco: '🧔', Jess: '👩' };
+
 // ==========================
 // ELEMENTOS DEL DOM
 // ==========================
@@ -26,7 +28,6 @@ const historyDiv    = document.getElementById("history");
 
 // ==========================
 // MENSAJES VISUALES
-// Muestra un mensaje debajo de los botones de acción
 // ==========================
 function showMessage(text, type = 'error') {
     const msg = document.getElementById("action-message");
@@ -34,21 +35,19 @@ function showMessage(text, type = 'error') {
     msg.className = 'action-message ' + type;
     msg.style.display = 'block';
     clearTimeout(msg._timer);
-    msg._timer = setTimeout(() => {
-        msg.style.display = 'none';
-    }, 3500);
+    msg._timer = setTimeout(() => { msg.style.display = 'none'; }, 3500);
 }
 
 // ==========================
 // DESHABILITAR / HABILITAR BOTONES
 // ==========================
 function setActionButtons(disabled) {
-    const buttons = document.querySelectorAll('.main-actions button, .btn-small');
-    buttons.forEach(btn => btn.disabled = disabled);
+    document.querySelectorAll('.quick-btn, .btn-give, .btn-steal')
+        .forEach(btn => btn.disabled = disabled);
 }
 
 // ==========================
-// ACCIONES (expuestas globalmente para los onclick del HTML)
+// ACCIONES
 // ==========================
 window.handleCustom = (action) => {
     const input = document.getElementById("custom-val");
@@ -64,34 +63,21 @@ window.handleCustom = (action) => {
 window.handleCoin = async (action, amount = 1) => {
     if (isSaving) return;
 
-    // Confirmación antes de robar
     if (action === 'remove') {
         const ok = confirm(`¿Seguro que quieres robar ${amount} moneda${amount > 1 ? 's' : ''}? ❌`);
         if (!ok) return;
     }
 
-    const oldW = myWallet;
-    const oldB = sharedBank;
-    const oldH = [...sharedHistory];
+    const oldW = myWallet, oldB = sharedBank, oldH = [...sharedHistory];
     let donationChange = 0;
 
     if (action === 'add') {
-        if (myWallet < amount) {
-            showMessage("¡No tienes suficientes monedas! 🪙", 'error');
-            return;
-        }
-        myWallet -= amount;
-        sharedBank += amount;
-        donationChange = amount;
+        if (myWallet < amount) { showMessage("¡No tienes suficientes monedas! 🪙", 'error'); return; }
+        myWallet -= amount; sharedBank += amount; donationChange = amount;
         sharedHistory.push(`${currentPlayer} dio ${amount} 🪙`);
     } else {
-        if (sharedBank < amount) {
-            showMessage("¡Pusheen no tiene tanto! 🐾", 'error');
-            return;
-        }
-        myWallet += amount;
-        sharedBank -= amount;
-        donationChange = -amount;
+        if (sharedBank < amount) { showMessage("¡Pusheen no tiene tanto! 🐾", 'error'); return; }
+        myWallet += amount; sharedBank -= amount; donationChange = -amount;
         sharedHistory.push(`${currentPlayer} robó ${amount} ❌`);
     }
 
@@ -101,10 +87,8 @@ window.handleCoin = async (action, amount = 1) => {
 
     try {
         const { data } = await supabase
-            .from("players")
-            .select("weekly_donations")
-            .eq("username", currentPlayer)
-            .single();
+            .from("players").select("weekly_donations")
+            .eq("username", currentPlayer).single();
 
         const newWeekly = Math.max(0, (data.weekly_donations || 0) + donationChange);
 
@@ -126,12 +110,10 @@ window.handleCoin = async (action, amount = 1) => {
 
         updateRankingUI();
     } catch (e) {
-        myWallet = oldW;
-        sharedBank = oldB;
-        sharedHistory = oldH;
+        myWallet = oldW; sharedBank = oldB; sharedHistory = oldH;
         renderUI();
         showMessage("Error al guardar. Intenta de nuevo 😿", 'error');
-        console.error("Error al guardar:", e);
+        console.error("Error:", e);
     } finally {
         isSaving = false;
         setActionButtons(false);
@@ -145,9 +127,8 @@ function renderUI() {
     coinDisplay.textContent = sharedBank;
     walletDisplay.textContent = myWallet;
     historyDiv.innerHTML = [...sharedHistory]
-        .reverse()
-        .slice(0, 6)
-        .map(m => `<p>${m}</p>`)
+        .reverse().slice(0, 6)
+        .map(m => `<div class="history-item">${m}</div>`)
         .join("");
 }
 
@@ -156,18 +137,19 @@ function renderUI() {
 // ==========================
 async function updateRankingUI() {
     const { data: r } = await supabase
-        .from("players")
-        .select("username, weekly_donations")
+        .from("players").select("username, weekly_donations")
         .order("weekly_donations", { ascending: false });
 
     const list = document.getElementById("ranking-list");
     if (!r) return;
 
-    list.innerHTML = r.map((p, i) =>
-        `<p class="${i === 0 ? 'first-place' : ''}">
-            ${i === 0 ? '👑' : '🐾'} ${p.username}: ${p.weekly_donations} monedas
-        </p>`
-    ).join("");
+    list.innerHTML = r.map((p, i) => `
+        <div class="ranking-item ${i === 0 ? 'first' : ''}">
+            <span class="rank-pos">${i === 0 ? '👑' : '🐾'}</span>
+            <span class="rank-name">${AVATARS[p.username] || '🐾'} ${p.username}</span>
+            <span class="rank-coins">${p.weekly_donations} 🪙</span>
+        </div>
+    `).join("");
 }
 
 // ==========================
@@ -176,19 +158,18 @@ async function updateRankingUI() {
 async function loadData(name) {
     currentPlayer = name;
 
+    // Mostrar avatar y nombre en header
+    document.getElementById("player-avatar").textContent = AVATARS[name] || '🐾';
+    document.getElementById("player-name").textContent = name;
+
     let { data: userData } = await supabase
-        .from("players")
-        .select("*")
-        .eq("username", name)
-        .maybeSingle();
+        .from("players").select("*").eq("username", name).maybeSingle();
 
     if (!userData) {
         myWallet = 100;
         await supabase.from("players").insert([{
-            username: name,
-            wallet_coins: 100,
-            last_claim: new Date().toISOString().split('T')[0],
-            weekly_donations: 0
+            username: name, wallet_coins: 100,
+            last_claim: new Date().toISOString().split('T')[0], weekly_donations: 0
         }]);
     } else {
         myWallet = userData.wallet_coins;
@@ -197,7 +178,6 @@ async function loadData(name) {
 
     await refreshSharedData();
 
-    // Tiempo real con Supabase Realtime
     supabase.channel('db-changes')
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bank' }, (p) => {
             sharedBank = p.new.total_coins;
@@ -209,8 +189,8 @@ async function loadData(name) {
         })
         .subscribe();
 
-    document.getElementById("login-screen").style.display = "none";
-    document.getElementById("game-screen").style.display = "block";
+    document.getElementById("login-screen").classList.remove('active');
+    document.getElementById("game-screen").classList.add('active');
     renderUI();
     updateRankingUI();
 }
@@ -230,61 +210,16 @@ async function checkDailyReward(user) {
 }
 
 async function refreshSharedData() {
-    const { data: b } = await supabase
-        .from("bank")
-        .select("*")
-        .eq("id", 1)
-        .single();
-
-    if (b) {
-        sharedBank = b.total_coins;
-        sharedHistory = b.history || [];
-    }
+    const { data: b } = await supabase.from("bank").select("*").eq("id", 1).single();
+    if (b) { sharedBank = b.total_coins; sharedHistory = b.history || []; }
 }
 
 // ==========================
-// EVENTOS DE BOTONES
+// BOTONES
 // ==========================
-
-// Login
 document.getElementById("franco-btn").onclick = () => loadData("Franco");
 document.getElementById("jess-btn").onclick   = () => loadData("Jess");
-document.getElementById("logout-btn").onclick  = () => location.reload();
-
-// Navegación eventos
-document.getElementById("events-btn").onclick = () => {
-    document.getElementById("game-screen").style.display   = "none";
-    document.getElementById("events-screen").style.display = "block";
-};
-
-document.getElementById("back-btn").onclick = () => {
-    document.getElementById("events-screen").style.display = "none";
-    document.getElementById("game-screen").style.display   = "block";
-};
-
-// Reclamar recompensa evento
-document.getElementById("claim-btn").onclick = async () => {
-    if (!currentPlayer) return;
-    const btn = document.getElementById("claim-btn");
-    if (btn.disabled) return;
-
-    btn.disabled = true;
-    btn.textContent = "Guardando...";
-
-    try {
-        myWallet += 100;
-        renderUI();
-
-        await supabase.from("players")
-            .update({ wallet_coins: myWallet })
-            .eq("username", currentPlayer);
-
-        btn.textContent = "🎁 Recompensa reclamada";
-    } catch (e) {
-        myWallet -= 100;
-        renderUI();
-        btn.disabled = false;
-        btn.textContent = "🎁 Reclamar 100 monedas";
-        console.error("Error al reclamar:", e);
-    }
+document.getElementById("logout-btn").onclick  = () => {
+    document.getElementById("game-screen").classList.remove('active');
+    document.getElementById("login-screen").classList.add('active');
 };
