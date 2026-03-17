@@ -159,6 +159,29 @@ input[type="number"] {
 
 #claim-btn { background: #ff4081; margin-top: 10px; }
 
+/* Mensajes de acción */
+.action-message {
+  margin: 10px auto 0;
+  padding: 10px 16px;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: bold;
+  text-align: center;
+  max-width: 85%;
+  animation: fadeIn 0.3s ease;
+}
+
+.action-message.error   { background: #fce4ec; color: #c62828; }
+.action-message.success { background: #e8f5e9; color: #2e7d32; }
+.action-message.warning { background: #fff3e0; color: #e65100; }
+
+/* Botones deshabilitados durante guardado */
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(20px); }
   to   { opacity: 1; transform: translateY(0); }
