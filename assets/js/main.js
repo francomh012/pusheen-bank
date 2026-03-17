@@ -9,6 +9,20 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ==========================
+// GIFs DE PUSHEEN POR SITUACIÓN
+// ==========================
+const PUSHEEN_GIFS = {
+  idle:  'https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif',
+  give:  'https://media.giphy.com/media/3o7TKSjRrfIPjeiVyM/giphy.gif',
+  steal: 'https://media.giphy.com/media/xT5LMAvRY92qUXj7dC/giphy.gif',
+};
+
+const REACTION_GIFS = {
+  give:  { src: 'https://media.giphy.com/media/3o7TKSjRrfIPjeiVyM/giphy.gif', text: '¡Gracias! 🪙✨' },
+  steal: { src: 'https://media.giphy.com/media/xT5LMAvRY92qUXj7dC/giphy.gif', text: '¡Me robaron! 😾' },
+};
+
+// ==========================
 // ESTADO GLOBAL
 // ==========================
 let currentPlayer = null;
@@ -39,6 +53,62 @@ function showMessage(text, type = 'error', containerId = 'action-message') {
     clearTimeout(msg._timer);
     msg._timer = setTimeout(() => { msg.style.display = 'none'; }, 3500);
 }
+
+// ==========================
+// ANIMACIONES
+// ==========================
+function setPusheenGif(type) {
+    const img = document.getElementById('pusheen-main-img');
+    if (!img) return;
+    img.src = (PUSHEEN_GIFS[type] || PUSHEEN_GIFS.idle);
+    if (type === 'steal') {
+        img.classList.add('shake');
+        setTimeout(() => { img.classList.remove('shake'); img.src = PUSHEEN_GIFS.idle; }, 3000);
+    } else if (type === 'give') {
+        setTimeout(() => { img.src = PUSHEEN_GIFS.idle; }, 3000);
+    }
+}
+
+function bumpBankNum() {
+    const num = document.getElementById('coin-count');
+    if (!num) return;
+    num.classList.remove('bump');
+    void num.offsetWidth;
+    num.classList.add('bump');
+    setTimeout(() => num.classList.remove('bump'), 400);
+}
+
+function spawnCoins(count = 6) {
+    const container = document.getElementById('coin-particles');
+    if (!container) return;
+    for (let i = 0; i < count; i++) {
+        const coin = document.createElement('span');
+        coin.textContent = '🪙';
+        coin.className = 'coin-particle';
+        coin.style.left = (25 + Math.random() * 50) + '%';
+        coin.style.animationDelay = (Math.random() * 0.4) + 's';
+        coin.style.fontSize = (14 + Math.random() * 10) + 'px';
+        container.appendChild(coin);
+        setTimeout(() => coin.remove(), 1400);
+    }
+}
+
+function showReaction(action) {
+    const toast = document.getElementById('reaction-toast');
+    const gif   = document.getElementById('reaction-gif');
+    const text  = document.getElementById('reaction-text');
+    if (!toast) return;
+    const r = REACTION_GIFS[action];
+    gif.src = r.src;
+    text.textContent = r.text;
+    toast.style.display = 'flex';
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => { toast.style.display = 'none'; }, 2500);
+}
+
+// Exponer para HTML inline también
+window.spawnCoins  = spawnCoins;
+window.showReaction = showReaction;
 
 // ==========================
 // DESHABILITAR / HABILITAR BOTONES
@@ -80,12 +150,17 @@ window.handleCoin = async (action, amount = 1) => {
         sharedHistory.push(`${currentPlayer} robó ${amount} ❌`);
     }
 
+    // ✨ Efectos visuales inmediatos
     renderUI();
+    bumpBankNum();
+    setPusheenGif(action === 'add' ? 'give' : 'steal');
+    if (action === 'add') spawnCoins(6);
+    showReaction(action);
+
     isSaving = true;
     setActionButtons(true);
 
     try {
-        // ✅ FIX: traer wallet_coins Y weekly_donations para evitar null
         const { data, error: fetchError } = await supabase
             .from("players")
             .select("wallet_coins, weekly_donations")
@@ -127,7 +202,7 @@ window.handleCoin = async (action, amount = 1) => {
 };
 
 // ==========================
-// RENDER MONEDAS
+// RENDER
 // ==========================
 function renderUI() {
     coinDisplay.textContent = sharedBank;
@@ -147,13 +222,12 @@ async function updateRankingUI() {
         .order("weekly_donations", { ascending: false });
 
     if (error) { console.error("Error ranking:", error); return; }
-
     const list = document.getElementById("ranking-list");
     if (!r) return;
 
     list.innerHTML = r.map((p, i) => `
-        <div class="ranking-item ${i === 0 ? 'first' : ''}">
-            <span class="rank-pos">${i === 0 ? '👑' : '🐾'}</span>
+        <div class="ranking-item ${i === 0 ? 'first' : ''}" style="animation-delay:${i * 0.08}s">
+            <span class="rank-pos">${i === 0 ? '👑' : i === 1 ? '🥈' : '🐾'}</span>
             <span class="rank-name">${AVATARS[p.username] || '🐾'} ${p.username}</span>
             <span class="rank-coins">${p.weekly_donations} 🪙</span>
         </div>
@@ -165,11 +239,9 @@ async function updateRankingUI() {
 // ==========================
 async function loadComplaints() {
     const { data, error } = await supabase
-        .from("complaints")
-        .select("*")
+        .from("complaints").select("*")
         .order("created_at", { ascending: false });
-
-    if (error) { console.error("Error cargando denuncias:", error); return; }
+    if (error) { console.error("Error denuncias:", error); return; }
     allComplaints = data || [];
     renderComplaints();
     updateNotifBadge();
@@ -181,15 +253,13 @@ function renderComplaints() {
         list.innerHTML = `<p style="text-align:center;color:var(--text-soft);padding:24px;font-weight:700;">No hay denuncias por ahora 🐾</p>`;
         return;
     }
-
-    list.innerHTML = allComplaints.map(c => {
+    list.innerHTML = allComplaints.map((c, idx) => {
         const isNew = !c.seen_by?.includes(currentPlayer) && c.reported_by !== currentPlayer;
         const isMine = c.reported_by === currentPlayer;
         const date = new Date(c.created_at).toLocaleDateString('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
         const severityLabels = { leve: '😐 Leve', grave: '😠 Grave', catastrofico: '💀 Catastrófico' };
-
         return `
-        <div class="complaint-card ${isNew ? 'nueva' : ''}" data-id="${c.id}">
+        <div class="complaint-card ${isNew ? 'nueva' : ''}" data-id="${c.id}" style="animation-delay:${idx * 0.06}s">
             <div class="complaint-top">
                 <span class="complaint-reporter">${AVATARS[c.reported_by] || '🐾'} ${c.reported_by} denuncia</span>
                 <span class="severity-tag ${c.severity}">${severityLabels[c.severity] || c.severity}</span>
@@ -200,56 +270,40 @@ function renderComplaints() {
             <div class="complaint-footer">
                 <span class="complaint-status ${c.status}">${c.status === 'abierta' ? '🔴 Abierta' : '✅ Resuelta'}</span>
                 <span class="complaint-date">${date}</span>
-                ${isMine && c.status === 'abierta' ? `<button class="btn-resolve resolver" onclick="resolveComplaint('${c.id}', 'resuelta')">✅ Resolver</button>` : ''}
+                ${isMine && c.status === 'abierta' ? `<button class="btn-resolve resolver" onclick="resolveComplaint('${c.id}','resuelta')">✅ Resolver</button>` : ''}
                 ${isMine ? `<button class="btn-resolve eliminar" onclick="deleteComplaint('${c.id}')">🗑️</button>` : ''}
             </div>
         </div>`;
     }).join("");
 }
 
-// Subir imagen a Supabase Storage
 async function uploadImage(file) {
     const ext = file.name.split('.').pop();
     const path = `${Date.now()}.${ext}`;
-    const { error } = await supabase.storage
-        .from('complaint-images')
-        .upload(path, file);
+    const { error } = await supabase.storage.from('complaint-images').upload(path, file);
     if (error) throw error;
     const { data } = supabase.storage.from('complaint-images').getPublicUrl(path);
     return data.publicUrl;
 }
 
-// Enviar denuncia
 document.getElementById("btn-submit-complaint").onclick = async () => {
     const category    = document.getElementById("c-category").value;
     const description = document.getElementById("c-description").value.trim();
     const severity    = document.getElementById("c-severity").value;
     const imageFile   = document.getElementById("c-image").files[0];
-
     if (!category)    { showMessage("Elige una categoría", 'error', 'complaint-msg'); return; }
     if (!description) { showMessage("Escribe qué pasó", 'error', 'complaint-msg'); return; }
     if (!severity)    { showMessage("Elige el nivel de gravedad", 'error', 'complaint-msg'); return; }
-
     const btn = document.getElementById("btn-submit-complaint");
-    btn.disabled = true;
-    btn.textContent = "Enviando...";
-
+    btn.disabled = true; btn.textContent = "Enviando...";
     try {
         let image_url = null;
         if (imageFile) image_url = await uploadImage(imageFile);
-
         const { error } = await supabase.from("complaints").insert([{
-            reported_by: currentPlayer,
-            category,
-            description,
-            severity,
-            image_url,
-            status: 'abierta',
-            seen_by: [currentPlayer]
+            reported_by: currentPlayer, category, description, severity,
+            image_url, status: 'abierta', seen_by: [currentPlayer]
         }]);
-
         if (error) throw error;
-
         document.getElementById("c-category").value = "";
         document.getElementById("c-description").value = "";
         document.getElementById("c-severity").value = "";
@@ -257,29 +311,21 @@ document.getElementById("btn-submit-complaint").onclick = async () => {
         document.querySelectorAll('.severity-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('complaint-form').style.display = 'none';
         document.getElementById('btn-new-complaint').style.display = 'block';
-
         showMessage("¡Denuncia enviada! 🚨", 'success', 'action-message');
     } catch (e) {
-        showMessage("Error al enviar. Intenta de nuevo.", 'error', 'complaint-msg');
+        showMessage("Error al enviar.", 'error', 'complaint-msg');
         console.error(e);
     } finally {
-        btn.disabled = false;
-        btn.textContent = "Enviar denuncia 🚨";
+        btn.disabled = false; btn.textContent = "Enviar denuncia 🚨";
     }
 };
 
-// Resolver denuncia
 window.resolveComplaint = async (id, status) => {
-    const { error } = await supabase.from("complaints").update({ status }).eq("id", id);
-    if (error) console.error("Error resolviendo:", error);
+    await supabase.from("complaints").update({ status }).eq("id", id);
 };
-
-// Eliminar denuncia
 window.deleteComplaint = async (id) => {
-    const ok = confirm("¿Eliminar esta denuncia?");
-    if (!ok) return;
-    const { error } = await supabase.from("complaints").delete().eq("id", id);
-    if (error) console.error("Error eliminando:", error);
+    if (!confirm("¿Eliminar esta denuncia?")) return;
+    await supabase.from("complaints").delete().eq("id", id);
 };
 
 // ==========================
@@ -289,52 +335,33 @@ function updateNotifBadge() {
     const unseen = allComplaints.filter(
         c => !c.seen_by?.includes(currentPlayer) && c.reported_by !== currentPlayer
     ).length;
-
     const badge = document.getElementById("notif-badge");
-    if (unseen > 0) {
-        badge.textContent = unseen;
-        badge.style.display = 'flex';
-    } else {
-        badge.style.display = 'none';
-    }
+    if (unseen > 0) { badge.textContent = unseen; badge.style.display = 'flex'; }
+    else { badge.style.display = 'none'; }
     renderNotifPanel();
 }
 
 function renderNotifPanel() {
     const list = document.getElementById("notif-list");
-    const unread = allComplaints.filter(
-        c => !c.seen_by?.includes(currentPlayer) && c.reported_by !== currentPlayer
-    );
-    const read = allComplaints.filter(
-        c => c.seen_by?.includes(currentPlayer) || c.reported_by === currentPlayer
-    ).slice(0, 5);
-
+    const unread = allComplaints.filter(c => !c.seen_by?.includes(currentPlayer) && c.reported_by !== currentPlayer);
+    const read   = allComplaints.filter(c => c.seen_by?.includes(currentPlayer) || c.reported_by === currentPlayer).slice(0, 5);
     if (!unread.length && !read.length) {
-        list.innerHTML = `<p class="notif-empty">No hay notificaciones 🐾</p>`;
-        return;
+        list.innerHTML = `<p class="notif-empty">No hay notificaciones 🐾</p>`; return;
     }
-
-    const renderItem = (c, isNew) => {
+    const item = (c, isNew) => {
         const date = new Date(c.created_at).toLocaleDateString('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-        return `<div class="notif-item ${isNew ? 'nueva' : ''}">
-            🚨 <strong>${c.reported_by}</strong> hizo una denuncia: <em>${c.category}</em>
-            <div class="notif-time">${date}</div>
-        </div>`;
+        return `<div class="notif-item ${isNew ? 'nueva' : ''}">🚨 <strong>${c.reported_by}</strong> hizo una denuncia: <em>${c.category}</em><div class="notif-time">${date}</div></div>`;
     };
-
     list.innerHTML =
-        unread.map(c => renderItem(c, true)).join("") +
+        unread.map(c => item(c, true)).join("") +
         (read.length ? `<p style="font-size:0.78rem;color:var(--text-soft);padding:8px 0;font-weight:700;">— Anteriores —</p>` : '') +
-        read.map(c => renderItem(c, false)).join("");
+        read.map(c => item(c, false)).join("");
 }
 
 window.markNotifsSeen = async () => {
-    const unseen = allComplaints.filter(
-        c => !c.seen_by?.includes(currentPlayer) && c.reported_by !== currentPlayer
-    );
+    const unseen = allComplaints.filter(c => !c.seen_by?.includes(currentPlayer) && c.reported_by !== currentPlayer);
     for (const c of unseen) {
-        const newSeen = [...(c.seen_by || []), currentPlayer];
-        await supabase.from("complaints").update({ seen_by: newSeen }).eq("id", c.id);
+        await supabase.from("complaints").update({ seen_by: [...(c.seen_by || []), currentPlayer] }).eq("id", c.id);
     }
     document.getElementById("notif-badge").style.display = 'none';
 };
@@ -350,21 +377,14 @@ async function loadData(name) {
     let { data: userData, error: userError } = await supabase
         .from("players").select("*").eq("username", name).maybeSingle();
 
-    if (userError) {
-        console.error("Error cargando jugador:", userError);
-        showMessage("Error al cargar tu perfil 😿", 'error');
-        return;
-    }
+    if (userError) { showMessage("Error al cargar tu perfil 😿", 'error'); return; }
 
     if (!userData) {
         myWallet = 100;
-        const { error: insertError } = await supabase.from("players").insert([{
-            username: name,
-            wallet_coins: 100,
-            last_claim: new Date().toISOString().split('T')[0],
-            weekly_donations: 0
+        await supabase.from("players").insert([{
+            username: name, wallet_coins: 100,
+            last_claim: new Date().toISOString().split('T')[0], weekly_donations: 0
         }]);
-        if (insertError) console.error("Error creando jugador:", insertError);
     } else {
         myWallet = userData.wallet_coins;
         await checkDailyReward(userData);
@@ -373,39 +393,31 @@ async function loadData(name) {
     await refreshSharedData();
     await loadComplaints();
 
-    // Tiempo real
     supabase.channel('db-changes')
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bank' }, (p) => {
-            sharedBank = p.new.total_coins;
-            sharedHistory = p.new.history;
-            renderUI();
+            sharedBank = p.new.total_coins; sharedHistory = p.new.history;
+            renderUI(); bumpBankNum();
         })
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'players' }, () => {
-            updateRankingUI();
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'complaints' }, () => {
-            loadComplaints();
-        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'players' }, () => updateRankingUI())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'complaints' }, () => loadComplaints())
         .subscribe();
 
     document.getElementById("login-screen").classList.remove('active');
     document.getElementById("game-screen").classList.add('active');
+    setPusheenGif('idle');
     renderUI();
     updateRankingUI();
 }
 
-// ==========================
-// FUNCIONES DE APOYO
-// ==========================
 async function checkDailyReward(user) {
     const hoy = new Date().toISOString().split('T')[0];
     if (user.last_claim !== hoy) {
         myWallet += 2;
         showMessage(`¡Hola ${currentPlayer}! 🐾 +2 monedas diarias`, 'success');
-        const { error } = await supabase.from("players")
+        spawnCoins(4);
+        await supabase.from("players")
             .update({ wallet_coins: myWallet, last_claim: hoy })
             .eq("username", currentPlayer);
-        if (error) console.error("Error reward diario:", error);
     }
 }
 
@@ -415,9 +427,6 @@ async function refreshSharedData() {
     if (b) { sharedBank = b.total_coins; sharedHistory = b.history || []; }
 }
 
-// ==========================
-// BOTONES LOGIN / LOGOUT
-// ==========================
 document.getElementById("franco-btn").onclick = () => loadData("Franco");
 document.getElementById("jess-btn").onclick   = () => loadData("Jess");
 document.getElementById("logout-btn").onclick  = () => {
