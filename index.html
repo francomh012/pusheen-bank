@@ -4,6 +4,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta charset="UTF-8">
   <title>Pusheen Bank 🐾</title>
+
+  <!-- ===== PWA META TAGS ===== -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#ff6fa8">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Pusheen 🐾">
+  <meta name="application-name" content="Pusheen Bank 🐾">
+  <meta name="msapplication-TileColor" content="#ff6fa8">
+  <meta name="description" content="El banco de Pusheen para Franco y Jess">
+
+  <!-- Icono para iOS (no usa manifest) -->
+  <link rel="apple-touch-icon" href="assets/img/icon.png">
+  <link rel="icon" type="image/png" href="assets/img/icon.png">
+
+  <!-- Fuentes -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/main.css">
@@ -28,6 +45,22 @@
         <span class="profile-name">Jess</span>
       </button>
     </div>
+
+    <!-- Banner instalar app (aparece automático si no está instalada) -->
+    <div id="install-banner" class="install-banner" style="display:none;">
+      <div class="install-banner-content">
+        <img src="assets/img/icon.png" class="install-icon" alt="icono">
+        <div class="install-text">
+          <strong>Instalar Pusheen Bank 🐾</strong>
+          <span>Úsala como app en tu cel</span>
+        </div>
+      </div>
+      <div class="install-actions">
+        <button id="install-btn" class="btn-install">Instalar</button>
+        <button id="install-dismiss" class="btn-dismiss">✕</button>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -45,7 +78,6 @@
       <span class="wallet-amount"><span id="available-coins">0</span> 🪙</span>
     </div>
     <div class="header-actions">
-      <!-- Mochila de videos -->
       <button id="backpack-btn" class="btn-icon" title="Mi mochila de videos">
         🎒
         <span id="backpack-badge" class="notif-badge" style="display:none;">0</span>
@@ -166,7 +198,7 @@
 
 </div>
 
-<!-- ===== PANEL MOCHILA DE VIDEOS ===== -->
+<!-- ===== PANEL MOCHILA ===== -->
 <div id="backpack-panel" class="side-panel" style="display:none;">
   <div class="side-panel-header">
     <span>🎒 Mi Mochila de Videos</span>
@@ -206,9 +238,72 @@
 </div>
 <div id="reward-overlay" class="reward-overlay" style="display:none;"></div>
 
+<!-- ===== TOAST ACTUALIZACIÓN PWA ===== -->
+<div id="update-toast" class="update-toast" style="display:none;">
+  <span>🐾 Nueva versión disponible</span>
+  <button id="update-btn" class="btn-update">Actualizar</button>
+</div>
+
 <script type="module" src="assets/js/main.js"></script>
 <script>
-  // Tabs
+  // ===== SERVICE WORKER =====
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').then(reg => {
+        console.log('🐾 SW registrado:', reg.scope);
+
+        // Detectar actualización disponible
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              document.getElementById('update-toast').style.display = 'flex';
+            }
+          });
+        });
+      }).catch(err => console.warn('SW error:', err));
+    });
+  }
+
+  // Botón actualizar PWA
+  document.getElementById('update-btn').onclick = () => {
+    navigator.serviceWorker.getRegistration().then(reg => {
+      if (reg?.waiting) {
+        reg.waiting.postMessage('skipWaiting');
+        window.location.reload();
+      }
+    });
+  };
+
+  // ===== BANNER INSTALAR =====
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    document.getElementById('install-banner').style.display = 'flex';
+  });
+
+  document.getElementById('install-btn').onclick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      document.getElementById('install-banner').style.display = 'none';
+    }
+    deferredPrompt = null;
+  };
+
+  document.getElementById('install-dismiss').onclick = () => {
+    document.getElementById('install-banner').style.display = 'none';
+  };
+
+  // Ocultar banner si ya está instalada
+  window.addEventListener('appinstalled', () => {
+    document.getElementById('install-banner').style.display = 'none';
+    deferredPrompt = null;
+  });
+
+  // ===== TABS =====
   document.querySelectorAll('.tab').forEach(tab => {
     tab.addEventListener('click', () => {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -227,7 +322,7 @@
     });
   });
 
-  // Toggle formulario denuncia
+  // Formulario denuncia
   document.getElementById('btn-new-complaint').onclick = () => {
     document.getElementById('complaint-form').style.display = 'block';
     document.getElementById('btn-new-complaint').style.display = 'none';
@@ -238,30 +333,18 @@
     document.getElementById('btn-new-complaint').style.display = 'block';
   };
 
-  // Panel helper
-  function openPanel(panelId) {
-    document.getElementById(panelId).style.display = 'flex';
+  // Paneles laterales
+  function openPanel(id) {
+    document.getElementById(id).style.display = 'flex';
     document.getElementById('side-overlay').style.display = 'block';
   }
   function closeAllPanels() {
-    ['backpack-panel','notif-panel'].forEach(id => {
-      document.getElementById(id).style.display = 'none';
-    });
+    ['backpack-panel','notif-panel'].forEach(id => document.getElementById(id).style.display = 'none');
     document.getElementById('side-overlay').style.display = 'none';
   }
-
-  // Mochila
-  document.getElementById('backpack-btn').onclick = () => {
-    openPanel('backpack-panel');
-    if (window.renderBackpack) window.renderBackpack();
-  };
+  document.getElementById('backpack-btn').onclick = () => { openPanel('backpack-panel'); if (window.renderBackpack) window.renderBackpack(); };
   document.getElementById('backpack-close').onclick = closeAllPanels;
-
-  // Notificaciones
-  document.getElementById('notif-btn').onclick = () => {
-    openPanel('notif-panel');
-    if (window.markNotifsSeen) window.markNotifsSeen();
-  };
+  document.getElementById('notif-btn').onclick = () => { openPanel('notif-panel'); if (window.markNotifsSeen) window.markNotifsSeen(); };
   document.getElementById('notif-close').onclick = closeAllPanels;
   document.getElementById('side-overlay').onclick = closeAllPanels;
 
@@ -269,13 +352,13 @@
   document.getElementById('reward-modal-close').onclick = closeRewardModal;
   document.getElementById('reward-overlay').onclick = closeRewardModal;
   function closeRewardModal() {
-    document.getElementById('reward-modal').style.display  = 'none';
+    document.getElementById('reward-modal').style.display = 'none';
     document.getElementById('reward-overlay').style.display = 'none';
     document.getElementById('reward-video-frame').innerHTML = '';
     document.getElementById('reward-video-wrap').style.display = 'none';
   }
 
-  // Partículas de monedas
+  // Partículas monedas
   window.spawnCoins = function(count = 6) {
     const container = document.getElementById('coin-particles');
     if (!container) return;

@@ -1,0 +1,25 @@
+{
+  "name": "Pusheen Bank 🐾",
+  "short_name": "Pusheen 🐾",
+  "description": "El banco de Pusheen para Franco y Jess",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fff0f5",
+  "theme_color": "#ff6fa8",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "assets/img/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/img/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
