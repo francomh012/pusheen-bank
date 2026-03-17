@@ -1,10 +1,12 @@
-import { db as supabase, storage } from './supabase-client.js';
+
 import { renderGamesTab } from './games.js';
+import { db as supabase, storage } from './supabase-client.js';
 
 // ==========================
 // CONFIGURACIÓN SUPABASE
 // ⚠️ Reemplaza con tu anon key real (empieza con eyJ...)
 // ==========================
+
 
 // ==========================
 // VIDEOS DE PUSHEEN
