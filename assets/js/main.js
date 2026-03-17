@@ -1,7 +1,10 @@
 
 import { renderGamesTab } from './games.js';
-import { db as supabase, storage } from './supabase-client.js';
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
+const SUPABASE_URL = 'https://erblqbqsjqhatarcpzjs.supabase.co';
+const SUPABASE_KEY = 'TU_ANON_KEY_AQUI'; // tu clave real
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 // ==========================
 // CONFIGURACIÓN SUPABASE
 // ⚠️ Reemplaza con tu anon key real (empieza con eyJ...)
