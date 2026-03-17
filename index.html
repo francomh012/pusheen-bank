@@ -13,19 +13,9 @@
 <!-- ===== LOGIN ===== -->
 <div id="login-screen" class="screen active">
   <div class="login-wrap">
-    <!-- Estrellas decorativas -->
-    <div class="stars">
-      <span class="star" style="top:8%;left:12%">✦</span>
-      <span class="star" style="top:15%;right:18%">✧</span>
-      <span class="star" style="top:72%;left:8%">✦</span>
-      <span class="star" style="top:80%;right:10%">✧</span>
-      <span class="star" style="top:40%;left:5%">⋆</span>
-      <span class="star" style="top:55%;right:6%">⋆</span>
-    </div>
     <div class="login-logo">
-      <!-- Pusheen waving / happy login -->
-      <img src="https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif"
-           onerror="this.src='assets/img/pusheen.gif'" alt="Pusheen">
+      <!-- amigos.png — imagen del login -->
+      <img src="assets/img/amigos.png" alt="Pusheen y amigos" onerror="this.style.display='none'">
     </div>
     <h1 class="login-title">Pusheen Bank</h1>
     <p class="login-sub">¿Quién eres hoy? 🐾</p>
@@ -33,12 +23,10 @@
       <button id="franco-btn" class="profile-btn">
         <span class="profile-avatar">🧔</span>
         <span class="profile-name">Franco</span>
-        <span class="profile-tag">Jefe 💼</span>
       </button>
       <button id="jess-btn" class="profile-btn">
         <span class="profile-avatar">👩</span>
         <span class="profile-name">Jess</span>
-        <span class="profile-tag">Jefa 👑</span>
       </button>
     </div>
   </div>
@@ -73,12 +61,10 @@
       <span class="bank-label">monedas de Pusheen</span>
     </div>
     <div class="pusheen-wrap">
-      <!-- GIF principal - Pusheen idle/happy -->
+      <!-- pusheen.gif — imagen principal central -->
       <img id="pusheen-main-img"
-           src="https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif"
-           onerror="this.src='assets/img/pusheen.gif'"
+           src="assets/img/pusheen.gif"
            class="pusheen-main" alt="Pusheen">
-      <!-- Partículas de monedas al dar -->
       <div id="coin-particles" class="coin-particles"></div>
     </div>
   </section>
@@ -92,7 +78,7 @@
       <button class="quick-btn steal" onclick="handleCoin('remove',5)">-5 ❌</button>
     </div>
     <div class="custom-row">
-      <input type="number" id="custom-val" placeholder="Cantidad..." min="1">
+      <input type="number" id="custom-val" placeholder="Otra cantidad..." min="1">
       <button class="btn-give" onclick="handleCustom('add')">Dar 🪙</button>
       <button class="btn-steal" onclick="handleCustom('remove')">Robar ❌</button>
     </div>
@@ -102,20 +88,43 @@
   <!-- Tabs -->
   <div class="tabs">
     <button class="tab active" data-tab="ranking">🏆 Ranking</button>
+    <button class="tab" data-tab="rewards">🎁 Recompensas</button>
     <button class="tab" data-tab="history">📜 Historial</button>
     <button class="tab" data-tab="complaints">🚨 Denuncias</button>
   </div>
 
   <!-- TAB RANKING -->
   <section id="tab-ranking" class="tab-content active">
-    <div class="tab-header-img">
-      <!-- Pusheen con trofeo -->
-      <img src="https://media.giphy.com/media/l0K4mbH4lKBhAPFU4/giphy.gif"
-           onerror="this.src='assets/img/pusheen.gif'"
-           class="tab-gif" alt="Pusheen ranking">
-      <p class="tab-gif-label">¡A ganar! 👑</p>
+    <!-- Imagen dinámica según quién va ganando -->
+    <div class="ranking-hero">
+      <img id="ranking-hero-img" src="assets/img/corona1.png" alt="Campeón" class="ranking-hero-img">
+      <p id="ranking-hero-label" class="ranking-hero-label">¡A ganar! 👑</p>
     </div>
     <div id="ranking-list" class="ranking-list"></div>
+  </section>
+
+  <!-- TAB RECOMPENSAS -->
+  <section id="tab-rewards" class="tab-content">
+    <div class="rewards-header">
+      <img src="assets/img/pusheen.gif" alt="Pusheen" class="rewards-pusheen">
+      <h2 class="rewards-title">Tus Recompensas 🎁</h2>
+      <p class="rewards-sub">Da monedas y mantén tu racha para ganar premios</p>
+    </div>
+
+    <!-- Progreso acumulado -->
+    <div class="rewards-section-title">🪙 Por monedas donadas</div>
+    <div class="rewards-grid" id="coin-rewards-grid">
+      <!-- generado por JS -->
+    </div>
+
+    <!-- Racha diaria -->
+    <div class="rewards-section-title">🔥 Por racha diaria</div>
+    <div class="rewards-streak-info">
+      Racha actual: <span id="streak-count" class="streak-num">0</span> días 🔥
+    </div>
+    <div class="rewards-grid" id="streak-rewards-grid">
+      <!-- generado por JS -->
+    </div>
   </section>
 
   <!-- TAB HISTORIAL -->
@@ -126,12 +135,10 @@
   <!-- TAB DENUNCIAS -->
   <section id="tab-complaints" class="tab-content">
 
-    <div class="tab-header-img">
-      <!-- Pusheen enojada/asustada -->
-      <img src="https://media.giphy.com/media/H7kfFDvD9HSYGRbvid/giphy.gif"
-           onerror="this.src='assets/img/pusheen.gif'"
-           class="tab-gif" alt="Pusheen denuncia">
-      <p class="tab-gif-label">¡Justicia! 🚨</p>
+    <!-- juez.png — imagen de denuncias -->
+    <div class="complaints-hero">
+      <img src="assets/img/juez.png" alt="Juez Pusheen" class="complaints-hero-img">
+      <p class="complaints-hero-label">¡Orden en la corte! ⚖️</p>
     </div>
 
     <button class="btn-new-complaint" id="btn-new-complaint">+ Nueva denuncia 🚨</button>
@@ -186,11 +193,23 @@
 </div>
 <div id="notif-overlay" class="notif-overlay" style="display:none;"></div>
 
-<!-- ===== TOAST DE REACCIÓN (GIF overlay) ===== -->
-<div id="reaction-toast" class="reaction-toast" style="display:none;">
-  <img id="reaction-gif" src="" alt="">
-  <p id="reaction-text"></p>
+<!-- ===== MODAL RECOMPENSA ===== -->
+<div id="reward-modal" class="reward-modal" style="display:none;">
+  <div class="reward-modal-box">
+    <div class="reward-modal-confetti" id="reward-confetti"></div>
+    <img src="assets/img/pusheen.gif" class="reward-modal-img" alt="Pusheen">
+    <h2 class="reward-modal-title" id="reward-modal-title">¡Recompensa!</h2>
+    <p class="reward-modal-desc" id="reward-modal-desc"></p>
+    <div class="reward-modal-coins" id="reward-modal-coins" style="display:none;"></div>
+    <!-- Probabilidad video Pusheen -->
+    <div id="reward-video-wrap" class="reward-video-wrap" style="display:none;">
+      <p class="reward-video-label">🎬 ¡Premio especial! Video de Pusheen</p>
+      <div id="reward-video-frame" class="reward-video-frame"></div>
+    </div>
+    <button class="reward-modal-btn" id="reward-modal-close">¡Genial! 🐾</button>
+  </div>
 </div>
+<div id="reward-overlay" class="reward-overlay" style="display:none;"></div>
 
 <script type="module" src="assets/js/main.js"></script>
 <script>
@@ -213,7 +232,7 @@
     });
   });
 
-  // Toggle formulario
+  // Toggle formulario denuncia
   document.getElementById('btn-new-complaint').onclick = () => {
     document.getElementById('complaint-form').style.display = 'block';
     document.getElementById('btn-new-complaint').style.display = 'none';
@@ -237,40 +256,31 @@
     document.getElementById('notif-overlay').style.display = 'none';
   }
 
+  // Cerrar modal recompensa
+  document.getElementById('reward-modal-close').onclick = closeRewardModal;
+  document.getElementById('reward-overlay').onclick = closeRewardModal;
+  function closeRewardModal() {
+    document.getElementById('reward-modal').style.display = 'none';
+    document.getElementById('reward-overlay').style.display = 'none';
+    // Limpiar iframe de video
+    document.getElementById('reward-video-frame').innerHTML = '';
+    document.getElementById('reward-video-wrap').style.display = 'none';
+  }
+
   // Partículas de monedas
   window.spawnCoins = function(count = 6) {
     const container = document.getElementById('coin-particles');
+    if (!container) return;
     for (let i = 0; i < count; i++) {
       const coin = document.createElement('span');
       coin.textContent = '🪙';
       coin.className = 'coin-particle';
-      coin.style.left = (30 + Math.random() * 40) + '%';
+      coin.style.left = (25 + Math.random() * 50) + '%';
       coin.style.animationDelay = (Math.random() * 0.4) + 's';
       coin.style.fontSize = (14 + Math.random() * 10) + 'px';
       container.appendChild(coin);
-      setTimeout(() => coin.remove(), 1200);
+      setTimeout(() => coin.remove(), 1400);
     }
-  };
-
-  // Reacción con GIF al dar/robar
-  window.showReaction = function(action) {
-    const toast = document.getElementById('reaction-toast');
-    const gif = document.getElementById('reaction-gif');
-    const text = document.getElementById('reaction-text');
-
-    if (action === 'add') {
-      // Pusheen happy / celebrando
-      gif.src = 'https://media.giphy.com/media/3o7TKSjRrfIPjeiVyM/giphy.gif';
-      text.textContent = '¡Gracias! 🪙✨';
-    } else {
-      // Pusheen triste / enojada
-      gif.src = 'https://media.giphy.com/media/xT5LMAvRY92qUXj7dC/giphy.gif';
-      text.textContent = '¡Me robaron! 😾';
-    }
-
-    toast.style.display = 'flex';
-    clearTimeout(toast._t);
-    toast._t = setTimeout(() => { toast.style.display = 'none'; }, 2500);
   };
 </script>
 </body>
