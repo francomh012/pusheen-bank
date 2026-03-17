@@ -94,10 +94,9 @@ body {
 .header-wallet { display: flex; flex-direction: column; align-items: center; }
 .wallet-label  { font-size: 0.68rem; color: var(--text-soft); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
 .wallet-amount { font-size: 1.2rem; font-weight: 900; color: var(--pink-deep); transition: color 0.3s; }
-/* Monedas negativas en billetera */
 .wallet-amount.negative { color: var(--red-deep) !important; }
-
 .header-actions { display: flex; align-items: center; gap: 6px; }
+
 .btn-icon {
   background: var(--pink-light); border: 2px solid var(--pink-soft);
   border-radius: 50%; width: 40px; height: 40px; font-size: 1.1rem;
@@ -106,6 +105,7 @@ body {
   transition: all 0.2s; position: relative;
 }
 .btn-icon:active { transform: scale(0.92); background: var(--pink-soft); }
+
 .notif-badge {
   position: absolute; top: -4px; right: -4px;
   background: var(--red-main); color: white;
@@ -131,9 +131,7 @@ body {
   box-shadow: var(--shadow); margin-bottom: 12px;
   transition: border-color 0.3s;
 }
-/* Banco negativo */
 .bank-bubble.negative { border-color: var(--red-main); background: #fff5f5; }
-
 .bank-num {
   font-size: 2.2rem; font-weight: 900; color: var(--pink-deep); line-height: 1;
   transition: color 0.3s;
@@ -147,7 +145,6 @@ body {
 }
 .bank-label { font-size: 0.72rem; color: var(--text-soft); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
 
-/* Indicador de deuda */
 .debt-badge {
   background: var(--red-soft); color: var(--red-deep);
   border: 2px solid #ffb3b3; border-radius: 999px;
@@ -172,7 +169,6 @@ body {
   60%{transform:rotate(-5deg);}
   80%{transform:rotate(5deg);}
 }
-/* Pusheen triste cuando banco negativo */
 .pusheen-main.sad { filter: drop-shadow(0 8px 20px rgba(200,0,0,0.2)) grayscale(0.3); }
 
 .coin-particles { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
@@ -209,6 +205,7 @@ body {
   outline: none; transition: border-color 0.2s; min-width: 0;
 }
 #custom-val:focus { border-color: var(--pink-main); }
+
 .btn-give, .btn-steal {
   border: none; border-radius: var(--radius-md); padding: 13px 16px;
   font-family: 'Nunito', sans-serif; font-size: 0.9rem; font-weight: 800;
@@ -256,7 +253,7 @@ body {
 .ranking-hero-img {
   width: 120px; height: 120px; object-fit: contain;
   filter: drop-shadow(0 6px 16px rgba(200,80,140,0.22));
-  animation: float 3s ease-in-out infinite; transition: opacity 0.3s;
+  animation: float 3s ease-in-out infinite;
 }
 .ranking-hero-label { font-size: 0.85rem; font-weight: 800; color: var(--text-soft); }
 .ranking-list { display: flex; flex-direction: column; gap: 10px; }
@@ -335,11 +332,10 @@ body {
 .complaints-hero-img { width: 110px; height: 110px; object-fit: contain; filter: drop-shadow(0 4px 12px rgba(200,80,140,0.2)); animation: float 3s ease-in-out infinite; }
 .complaints-hero-label { font-size: 0.85rem; font-weight: 800; color: var(--text-soft); }
 .btn-new-complaint {
-  width: 100%; padding: 14px;
-  background: var(--pink-main); color: var(--white); border: none;
-  border-radius: var(--radius-lg); font-family: 'Nunito', sans-serif;
-  font-size: 1rem; font-weight: 800; cursor: pointer;
-  margin-bottom: 16px; transition: all 0.2s; box-shadow: var(--shadow);
+  width: 100%; padding: 14px; background: var(--pink-main); color: var(--white);
+  border: none; border-radius: var(--radius-lg); font-family: 'Nunito', sans-serif;
+  font-size: 1rem; font-weight: 800; cursor: pointer; margin-bottom: 16px;
+  transition: all 0.2s; box-shadow: var(--shadow);
 }
 .btn-new-complaint:active { transform: scale(0.97); }
 .complaint-form {
@@ -350,21 +346,20 @@ body {
 .form-title { font-size: 1.1rem; font-weight: 900; color: var(--pink-deep); margin-bottom: 4px; }
 .form-label { font-size: 0.82rem; font-weight: 800; color: var(--text-mid); text-transform: uppercase; letter-spacing: 0.5px; }
 .form-select, .form-textarea {
-  width: 100%; padding: 12px 14px;
-  border: 2px solid var(--pink-soft); border-radius: var(--radius-md);
-  font-family: 'Nunito', sans-serif; font-size: 0.95rem; font-weight: 600;
-  color: var(--text); background: var(--pink-light); outline: none; transition: border-color 0.2s;
+  width: 100%; padding: 12px 14px; border: 2px solid var(--pink-soft);
+  border-radius: var(--radius-md); font-family: 'Nunito', sans-serif;
+  font-size: 0.95rem; font-weight: 600; color: var(--text);
+  background: var(--pink-light); outline: none; transition: border-color 0.2s;
 }
 .form-select:focus, .form-textarea:focus { border-color: var(--pink-main); }
 .form-textarea { min-height: 90px; resize: vertical; }
 .form-file { font-family: 'Nunito', sans-serif; font-size: 0.9rem; color: var(--text-mid); }
 .severity-btns { display: flex; gap: 8px; }
 .severity-btn {
-  flex: 1; padding: 10px 6px;
-  border: 2px solid var(--pink-soft); border-radius: var(--radius-md);
-  background: var(--white); font-family: 'Nunito', sans-serif;
-  font-size: 0.82rem; font-weight: 800; color: var(--text-mid);
-  cursor: pointer; transition: all 0.15s;
+  flex: 1; padding: 10px 6px; border: 2px solid var(--pink-soft);
+  border-radius: var(--radius-md); background: var(--white);
+  font-family: 'Nunito', sans-serif; font-size: 0.82rem; font-weight: 800;
+  color: var(--text-mid); cursor: pointer; transition: all 0.15s;
 }
 .severity-btn:active { transform: scale(0.95); }
 .severity-btn.active[data-val="leve"]         { background:#fff3e0; border-color:#ffb74d; color:#e65100; }
@@ -398,66 +393,38 @@ body {
 .complaint-date { font-size:0.72rem; color:var(--text-soft); font-weight:600; }
 
 /* ==============================
-   PANELES LATERALES (Mochila + Notifs)
+   PANELES LATERALES
 ============================== */
-.notif-overlay {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.3);
-  z-index: 50;
-}
+.notif-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.3); z-index:50; }
 .side-panel {
-  position: fixed; top: 0; right: 0;
-  width: min(360px, 100vw); height: 100vh;
-  background: var(--white); z-index: 51;
-  flex-direction: column;
-  box-shadow: -4px 0 24px rgba(200,80,140,0.15);
+  position:fixed; top:0; right:0;
+  width:min(360px,100vw); height:100vh;
+  background:var(--white); z-index:51;
+  flex-direction:column;
+  box-shadow:-4px 0 24px rgba(200,80,140,0.15);
 }
 .side-panel-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 20px; border-bottom: 2px solid var(--pink-soft);
-  font-weight: 900; font-size: 1rem; color: var(--pink-deep);
-  background: var(--pink-light);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:20px; border-bottom:2px solid var(--pink-soft);
+  font-weight:900; font-size:1rem; color:var(--pink-deep);
+  background:var(--pink-light);
 }
-.notif-list {
-  flex: 1; overflow-y: auto; padding: 12px;
-  display: flex; flex-direction: column; gap: 10px;
-}
-.notif-item {
-  background: var(--pink-light); border-radius: var(--radius-md);
-  padding: 12px 14px; border-left: 4px solid var(--pink-main);
-  font-size: 0.88rem; font-weight: 700; color: var(--text);
-}
-.notif-item.nueva { border-left-color: var(--red-main); background: #fff0f0; }
-.notif-item .notif-time { font-size: 0.72rem; color: var(--text-soft); margin-top: 4px; }
-.notif-empty { text-align: center; color: var(--text-soft); font-size: 0.9rem; padding: 32px 16px; font-weight: 700; }
-.notif-empty small { display: block; margin-top: 4px; font-weight: 600; font-size: 0.8rem; }
+.notif-list { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:10px; }
+.notif-item { background:var(--pink-light); border-radius:var(--radius-md); padding:12px 14px; border-left:4px solid var(--pink-main); font-size:0.88rem; font-weight:700; color:var(--text); }
+.notif-item.nueva { border-left-color:var(--red-main); background:#fff0f0; }
+.notif-item .notif-time { font-size:0.72rem; color:var(--text-soft); margin-top:4px; }
+.notif-empty { text-align:center; color:var(--text-soft); font-size:0.9rem; padding:32px 16px; font-weight:700; }
+.notif-empty small { display:block; margin-top:4px; font-weight:600; font-size:0.8rem; }
 
 /* ==============================
    MOCHILA DE VIDEOS
 ============================== */
-.backpack-list {
-  flex: 1; overflow-y: auto; padding: 14px;
-  display: flex; flex-direction: column; gap: 12px;
-}
-.backpack-video-card {
-  background: var(--pink-light); border: 2px solid var(--pink-soft);
-  border-radius: var(--radius-lg); overflow: hidden;
-  box-shadow: var(--shadow); animation: slideIn 0.3s ease both;
-}
-.backpack-video-thumb {
-  width: 100%; aspect-ratio: 16/9;
-  border: none; display: block;
-}
-.backpack-video-info {
-  padding: 10px 14px;
-  display: flex; align-items: center; justify-content: space-between;
-}
-.backpack-video-label {
-  font-size: 0.82rem; font-weight: 800; color: var(--pink-deep);
-}
-.backpack-video-date {
-  font-size: 0.72rem; color: var(--text-soft); font-weight: 600;
-}
+.backpack-list { flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:12px; }
+.backpack-video-card { background:var(--pink-light); border:2px solid var(--pink-soft); border-radius:var(--radius-lg); overflow:hidden; box-shadow:var(--shadow); animation:slideIn 0.3s ease both; }
+.backpack-video-thumb { width:100%; aspect-ratio:16/9; border:none; display:block; }
+.backpack-video-info { padding:10px 14px; display:flex; align-items:center; justify-content:space-between; }
+.backpack-video-label { font-size:0.82rem; font-weight:800; color:var(--pink-deep); }
+.backpack-video-date  { font-size:0.72rem; color:var(--text-soft); font-weight:600; }
 
 /* ==============================
    MODAL RECOMPENSA
@@ -465,13 +432,12 @@ body {
 .reward-overlay { position:fixed; inset:0; background:rgba(60,10,40,0.5); backdrop-filter:blur(3px); z-index:60; }
 .reward-modal   { position:fixed; inset:0; z-index:61; display:flex; align-items:center; justify-content:center; padding:24px; }
 .reward-modal-box {
-  background: var(--white); border-radius: var(--radius-xl);
-  padding: 28px 24px 24px; width: 100%; max-width: 340px;
-  display: flex; flex-direction: column; align-items: center; gap: 12px;
-  box-shadow: 0 12px 60px rgba(200,80,140,0.3);
-  border: 3px solid var(--pink-soft);
-  animation: popIn 0.4s cubic-bezier(.34,1.56,.64,1);
-  position: relative; overflow: hidden;
+  background:var(--white); border-radius:var(--radius-xl);
+  padding:28px 24px 24px; width:100%; max-width:340px;
+  display:flex; flex-direction:column; align-items:center; gap:12px;
+  box-shadow:0 12px 60px rgba(200,80,140,0.3); border:3px solid var(--pink-soft);
+  animation:popIn 0.4s cubic-bezier(.34,1.56,.64,1);
+  position:relative; overflow:hidden;
 }
 @keyframes popIn { from{opacity:0;transform:scale(0.6);} to{opacity:1;transform:scale(1);} }
 .reward-modal-confetti { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
@@ -495,90 +461,35 @@ body {
 .reward-modal-btn:active { transform: scale(0.95); }
 
 /* ==============================
-   RESPONSIVE DESKTOP
-============================== */
-@media (min-width: 520px) {
-  #game-screen { max-width:480px; margin:0 auto; box-shadow:var(--shadow-lg); min-height:100vh; background:var(--pink-light); }
-  .pusheen-main { width:210px; height:210px; }
-  .bank-num { font-size: 2.6rem; }
-}
-/* ==============================
    PWA — BANNER INSTALAR
 ============================== */
 .install-banner {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  background: var(--white);
-  border: 2.5px solid var(--pink-soft);
-  border-radius: var(--radius-xl);
-  padding: 16px 18px;
-  margin-top: 20px;
-  box-shadow: var(--shadow-lg);
-  width: 100%;
-  max-width: 320px;
+  display: flex; flex-direction: column; gap: 10px;
+  background: var(--white); border: 2.5px solid var(--pink-soft);
+  border-radius: var(--radius-xl); padding: 16px 18px;
+  margin-top: 20px; box-shadow: var(--shadow-lg);
+  width: 100%; max-width: 320px;
   animation: fadeSlide 0.4s ease;
 }
-.install-banner-content {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.install-icon {
-  width: 48px; height: 48px;
-  border-radius: var(--radius-md);
-  object-fit: cover;
-  box-shadow: 0 2px 8px rgba(200,80,140,0.15);
-}
-.install-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.install-text strong {
-  font-size: 0.95rem;
-  font-weight: 900;
-  color: var(--pink-deep);
-}
-.install-text span {
-  font-size: 0.78rem;
-  color: var(--text-soft);
-  font-weight: 600;
-}
-.install-actions {
-  display: flex;
-  gap: 8px;
-}
+.install-banner-content { display: flex; align-items: center; gap: 12px; }
+.install-icon { width: 48px; height: 48px; border-radius: var(--radius-md); object-fit: cover; box-shadow: 0 2px 8px rgba(200,80,140,0.15); }
+.install-text { display: flex; flex-direction: column; gap: 2px; }
+.install-text strong { font-size: 0.95rem; font-weight: 900; color: var(--pink-deep); }
+.install-text span   { font-size: 0.78rem; color: var(--text-soft); font-weight: 600; }
+.install-actions { display: flex; gap: 8px; }
 .btn-install {
-  flex: 1;
-  background: var(--pink-main);
-  color: var(--white);
-  border: none;
-  border-radius: 999px;
-  padding: 10px 20px;
-  font-family: 'Nunito', sans-serif;
-  font-size: 0.9rem;
-  font-weight: 800;
-  cursor: pointer;
-  transition: all 0.15s;
-  box-shadow: var(--shadow);
+  flex: 1; background: var(--pink-main); color: var(--white); border: none;
+  border-radius: 999px; padding: 10px 20px;
+  font-family: 'Nunito', sans-serif; font-size: 0.9rem; font-weight: 800;
+  cursor: pointer; transition: all 0.15s; box-shadow: var(--shadow);
 }
 .btn-install:active { transform: scale(0.95); }
 .btn-dismiss {
-  background: var(--pink-light);
-  border: 2px solid var(--pink-soft);
-  border-radius: 50%;
-  width: 36px; height: 36px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  color: var(--text-soft);
-  font-family: 'Nunito', sans-serif;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s;
-  flex-shrink: 0;
+  background: var(--pink-light); border: 2px solid var(--pink-soft);
+  border-radius: 50%; width: 36px; height: 36px; font-size: 0.85rem;
+  cursor: pointer; color: var(--text-soft); font-family: 'Nunito', sans-serif;
+  font-weight: 800; display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s; flex-shrink: 0;
 }
 .btn-dismiss:active { background: var(--pink-soft); }
 
@@ -586,34 +497,27 @@ body {
    PWA — TOAST ACTUALIZACIÓN
 ============================== */
 .update-toast {
-  position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--text);
-  color: var(--white);
-  border-radius: 999px;
-  padding: 12px 20px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 0.88rem;
-  font-weight: 700;
-  box-shadow: var(--shadow-lg);
-  z-index: 200;
-  white-space: nowrap;
-  animation: fadeSlide 0.3s ease;
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--text); color: var(--white);
+  border-radius: 999px; padding: 12px 20px;
+  display: flex; align-items: center; gap: 12px;
+  font-size: 0.88rem; font-weight: 700;
+  box-shadow: var(--shadow-lg); z-index: 200;
+  white-space: nowrap; animation: fadeSlide 0.3s ease;
 }
 .btn-update {
-  background: var(--pink-main);
-  color: var(--white);
-  border: none;
-  border-radius: 999px;
-  padding: 6px 16px;
-  font-family: 'Nunito', sans-serif;
-  font-size: 0.82rem;
-  font-weight: 800;
-  cursor: pointer;
-  transition: all 0.15s;
+  background: var(--pink-main); color: var(--white); border: none;
+  border-radius: 999px; padding: 6px 16px;
+  font-family: 'Nunito', sans-serif; font-size: 0.82rem; font-weight: 800;
+  cursor: pointer; transition: all 0.15s;
 }
 .btn-update:active { transform: scale(0.94); }
+
+/* ==============================
+   RESPONSIVE DESKTOP
+============================== */
+@media (min-width: 520px) {
+  #game-screen { max-width:480px; margin:0 auto; box-shadow:var(--shadow-lg); min-height:100vh; background:var(--pink-light); }
+  .pusheen-main { width:210px; height:210px; }
+  .bank-num { font-size: 2.6rem; }
+}
