@@ -2,10 +2,10 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 // ==========================
 // CONFIGURACIÓN SUPABASE
-// ⚠️ Mueve estas claves a variables de entorno de Vercel en producción
+// ⚠️ Reemplaza SUPABASE_KEY con tu anon key real (empieza con eyJ...)
 // ==========================
 const SUPABASE_URL = 'https://erblqbqsjqhatarcpzjs.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_hqp5-27VsAh8eUKZoonUeg_KtTMjr99';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVyYmxxYnFzanFoYXRhcmNwempzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5Nzk4NTUsImV4cCI6MjA4NzU1NTg1NX0.p3WM4tO9vDIc1gtS6kg3FqYxMRHFhYUo2wcsHDVKZEk'; // 👈 CAMBIA ESTO
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ==========================
@@ -85,13 +85,18 @@ window.handleCoin = async (action, amount = 1) => {
     setActionButtons(true);
 
     try {
-        const { data } = await supabase
-            .from("players").select("weekly_donations")
-            .eq("username", currentPlayer).single();
+        // ✅ FIX: traer wallet_coins Y weekly_donations para evitar null
+        const { data, error: fetchError } = await supabase
+            .from("players")
+            .select("wallet_coins, weekly_donations")
+            .eq("username", currentPlayer)
+            .single();
+
+        if (fetchError || !data) throw new Error("No se encontró el jugador: " + (fetchError?.message || ''));
 
         const newWeekly = Math.max(0, (data.weekly_donations || 0) + donationChange);
 
-        await Promise.all([
+        const [upPlayer, upBank] = await Promise.all([
             supabase.from("players")
                 .update({ wallet_coins: myWallet, weekly_donations: newWeekly })
                 .eq("username", currentPlayer),
@@ -99,6 +104,9 @@ window.handleCoin = async (action, amount = 1) => {
                 .update({ total_coins: sharedBank, history: sharedHistory })
                 .eq("id", 1)
         ]);
+
+        if (upPlayer.error) throw new Error("Error actualizando jugador: " + upPlayer.error.message);
+        if (upBank.error)   throw new Error("Error actualizando banco: " + upBank.error.message);
 
         showMessage(
             action === 'add'
@@ -111,7 +119,7 @@ window.handleCoin = async (action, amount = 1) => {
         myWallet = oldW; sharedBank = oldB; sharedHistory = oldH;
         renderUI();
         showMessage("Error al guardar. Intenta de nuevo 😿", 'error');
-        console.error("Error:", e);
+        console.error("Error detallado:", e);
     } finally {
         isSaving = false;
         setActionButtons(false);
@@ -134,9 +142,11 @@ function renderUI() {
 // RANKING
 // ==========================
 async function updateRankingUI() {
-    const { data: r } = await supabase
+    const { data: r, error } = await supabase
         .from("players").select("username, weekly_donations")
         .order("weekly_donations", { ascending: false });
+
+    if (error) { console.error("Error ranking:", error); return; }
 
     const list = document.getElementById("ranking-list");
     if (!r) return;
@@ -176,7 +186,6 @@ function renderComplaints() {
         const isNew = !c.seen_by?.includes(currentPlayer) && c.reported_by !== currentPlayer;
         const isMine = c.reported_by === currentPlayer;
         const date = new Date(c.created_at).toLocaleDateString('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-
         const severityLabels = { leve: '😐 Leve', grave: '😠 Grave', catastrofico: '💀 Catastrófico' };
 
         return `
@@ -198,7 +207,7 @@ function renderComplaints() {
     }).join("");
 }
 
-// Subir imagen a Supabase Storage (bucket: complaint-images)
+// Subir imagen a Supabase Storage
 async function uploadImage(file) {
     const ext = file.name.split('.').pop();
     const path = `${Date.now()}.${ext}`;
@@ -241,7 +250,6 @@ document.getElementById("btn-submit-complaint").onclick = async () => {
 
         if (error) throw error;
 
-        // Limpiar formulario
         document.getElementById("c-category").value = "";
         document.getElementById("c-description").value = "";
         document.getElementById("c-severity").value = "";
@@ -262,14 +270,16 @@ document.getElementById("btn-submit-complaint").onclick = async () => {
 
 // Resolver denuncia
 window.resolveComplaint = async (id, status) => {
-    await supabase.from("complaints").update({ status }).eq("id", id);
+    const { error } = await supabase.from("complaints").update({ status }).eq("id", id);
+    if (error) console.error("Error resolviendo:", error);
 };
 
 // Eliminar denuncia
 window.deleteComplaint = async (id) => {
     const ok = confirm("¿Eliminar esta denuncia?");
     if (!ok) return;
-    await supabase.from("complaints").delete().eq("id", id);
+    const { error } = await supabase.from("complaints").delete().eq("id", id);
+    if (error) console.error("Error eliminando:", error);
 };
 
 // ==========================
@@ -287,7 +297,6 @@ function updateNotifBadge() {
     } else {
         badge.style.display = 'none';
     }
-
     renderNotifPanel();
 }
 
@@ -319,7 +328,6 @@ function renderNotifPanel() {
         read.map(c => renderItem(c, false)).join("");
 }
 
-// Marcar como vistas
 window.markNotifsSeen = async () => {
     const unseen = allComplaints.filter(
         c => !c.seen_by?.includes(currentPlayer) && c.reported_by !== currentPlayer
@@ -339,15 +347,24 @@ async function loadData(name) {
     document.getElementById("player-avatar").textContent = AVATARS[name] || '🐾';
     document.getElementById("player-name").textContent = name;
 
-    let { data: userData } = await supabase
+    let { data: userData, error: userError } = await supabase
         .from("players").select("*").eq("username", name).maybeSingle();
+
+    if (userError) {
+        console.error("Error cargando jugador:", userError);
+        showMessage("Error al cargar tu perfil 😿", 'error');
+        return;
+    }
 
     if (!userData) {
         myWallet = 100;
-        await supabase.from("players").insert([{
-            username: name, wallet_coins: 100,
-            last_claim: new Date().toISOString().split('T')[0], weekly_donations: 0
+        const { error: insertError } = await supabase.from("players").insert([{
+            username: name,
+            wallet_coins: 100,
+            last_claim: new Date().toISOString().split('T')[0],
+            weekly_donations: 0
         }]);
+        if (insertError) console.error("Error creando jugador:", insertError);
     } else {
         myWallet = userData.wallet_coins;
         await checkDailyReward(userData);
@@ -385,19 +402,21 @@ async function checkDailyReward(user) {
     if (user.last_claim !== hoy) {
         myWallet += 2;
         showMessage(`¡Hola ${currentPlayer}! 🐾 +2 monedas diarias`, 'success');
-        await supabase.from("players")
+        const { error } = await supabase.from("players")
             .update({ wallet_coins: myWallet, last_claim: hoy })
             .eq("username", currentPlayer);
+        if (error) console.error("Error reward diario:", error);
     }
 }
 
 async function refreshSharedData() {
-    const { data: b } = await supabase.from("bank").select("*").eq("id", 1).single();
+    const { data: b, error } = await supabase.from("bank").select("*").eq("id", 1).single();
+    if (error) { console.error("Error banco:", error); return; }
     if (b) { sharedBank = b.total_coins; sharedHistory = b.history || []; }
 }
 
 // ==========================
-// BOTONES DE LOGIN / LOGOUT
+// BOTONES LOGIN / LOGOUT
 // ==========================
 document.getElementById("franco-btn").onclick = () => loadData("Franco");
 document.getElementById("jess-btn").onclick   = () => loadData("Jess");
