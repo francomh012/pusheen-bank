@@ -104,16 +104,14 @@
 
   <!-- TABS — solo iconos -->
   <div class="tabs">
-    <button class="tab active" data-tab="ranking"   title="Ranking">🏆</button>
-    <button class="tab"        data-tab="games"     title="Juegos">🎮</button>
-    <button class="tab"        data-tab="rewards"   title="Recompensas">🎁</button>
-    <button class="tab"        data-tab="history"   title="Historial">📜</button>
+    <button class="tab active" data-tab="ranking"    title="Ranking">🏆</button>
+    <button class="tab"        data-tab="games"      title="Juegos">🎮</button>
+    <button class="tab"        data-tab="rewards"    title="Recompensas">🎁</button>
+    <button class="tab"        data-tab="history"    title="Historial">📜</button>
     <button class="tab"        data-tab="complaints" title="Denuncias">🚨</button>
   </div>
 
   <section id="tab-ranking" class="tab-content active">
-    <!-- Botón activar/desactivar notificaciones -->
-    <div id="notif-toggle-wrap"></div>
     <div class="ranking-hero">
       <img id="ranking-hero-img" src="assets/img/corona1.png" alt="Campeón" class="ranking-hero-img">
       <p id="ranking-hero-label" class="ranking-hero-label">¡A ganar! 👑</p>
@@ -298,15 +296,21 @@
   };
 
   // Paneles
-  function openPanel(id) { document.getElementById(id).style.display='flex'; document.getElementById('side-overlay').style.display='block'; }
-  function closeAllPanels() { ['backpack-panel','notif-panel'].forEach(id=>document.getElementById(id).style.display='none'); document.getElementById('side-overlay').style.display='none'; }
+  function openPanel(id) {
+    document.getElementById(id).style.display = 'flex';
+    document.getElementById('side-overlay').style.display = 'block';
+  }
+  function closeAllPanels() {
+    ['backpack-panel','notif-panel'].forEach(id => document.getElementById(id).style.display = 'none');
+    document.getElementById('side-overlay').style.display = 'none';
+  }
   document.getElementById('backpack-btn').onclick = () => { openPanel('backpack-panel'); if(window.renderBackpack) window.renderBackpack(); };
   document.getElementById('backpack-close').onclick = closeAllPanels;
   document.getElementById('notif-btn').onclick = () => { openPanel('notif-panel'); if(window.markNotifsSeen) window.markNotifsSeen(); };
   document.getElementById('notif-close').onclick = closeAllPanels;
   document.getElementById('side-overlay').onclick = closeAllPanels;
 
-  // Volver del juego al menú
+  // Volver del juego
   document.getElementById('btn-back-game').onclick = () => {
     document.getElementById('game-fullscreen').classList.remove('active');
   };
@@ -315,20 +319,20 @@
   document.getElementById('reward-modal-close').onclick = closeRewardModal;
   document.getElementById('reward-overlay').onclick = closeRewardModal;
   function closeRewardModal() {
-    document.getElementById('reward-modal').style.display='none';
-    document.getElementById('reward-overlay').style.display='none';
-    document.getElementById('reward-video-frame').innerHTML='';
-    document.getElementById('reward-video-wrap').style.display='none';
+    document.getElementById('reward-modal').style.display = 'none';
+    document.getElementById('reward-overlay').style.display = 'none';
+    document.getElementById('reward-video-frame').innerHTML = '';
+    document.getElementById('reward-video-wrap').style.display = 'none';
   }
 
   // Partículas
   window.spawnCoins = function(count=6) {
-    const c=document.getElementById('coin-particles'); if(!c)return;
-    for(let i=0;i<count;i++){
-      const coin=document.createElement('span'); coin.textContent='🪙'; coin.className='coin-particle';
-      coin.style.left=(25+Math.random()*50)+'%'; coin.style.animationDelay=(Math.random()*0.4)+'s';
-      coin.style.fontSize=(14+Math.random()*10)+'px'; c.appendChild(coin);
-      setTimeout(()=>coin.remove(),1400);
+    const c = document.getElementById('coin-particles'); if(!c) return;
+    for(let i=0; i<count; i++){
+      const coin = document.createElement('span'); coin.textContent = '🪙'; coin.className = 'coin-particle';
+      coin.style.left = (25+Math.random()*50)+'%'; coin.style.animationDelay = (Math.random()*0.4)+'s';
+      coin.style.fontSize = (14+Math.random()*10)+'px'; c.appendChild(coin);
+      setTimeout(()=>coin.remove(), 1400);
     }
   };
 </script>

@@ -4,7 +4,6 @@
 
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 import { renderGamesTab } from './games.js';
-import { subscribeToPush, isPushSubscribed, notifyOtherPlayer, renderNotifToggle } from './notifications.js';
 import {
   SUPABASE_URL, SUPABASE_KEY,
   AVATARS, RANKING_IMGS,
@@ -206,14 +205,7 @@ window.handleCoin = async (action, amount = 1) => {
             showMessage(`Robaste ${amount} moneda${amount > 1 ? 's' : ''}... ❌`, 'warning');
         }
 
-        // 🔔 NOTIFICACIÓN — robo de monedas
-        if (action === 'remove') {
-            notifyOtherPlayer('steal', currentPlayer, { amount });
-        }
-
-        // 🔔 NOTIFICACIÓN — ranking (si cambió el líder)
-        updateRankingUI(true);
-
+        updateRankingUI();
         if (action === 'add') checkNewRewards();
         renderRewardsUI();
 
@@ -242,11 +234,9 @@ function renderUI() {
 }
 
 // ==========================
-// RANKING + notificación si cambia el líder
+// RANKING
 // ==========================
-let lastLeader = null;
-
-async function updateRankingUI(checkLeaderChange = false) {
+async function updateRankingUI() {
     const { data: r, error } = await supabase.from('players')
         .select('username, weekly_donations')
         .order('weekly_donations', { ascending: false });
@@ -258,15 +248,6 @@ async function updateRankingUI(checkLeaderChange = false) {
         const cfg = RANKING_IMGS[r[0].username] || RANKING_IMGS.default;
         heroImg.src = cfg.src;
         heroLabel.textContent = cfg.label;
-
-        // 🔔 NOTIFICACIÓN — cambio de lider
-        if (checkLeaderChange && lastLeader && lastLeader !== r[0].username) {
-            notifyOtherPlayer('ranking', currentPlayer, {
-                leader: r[0].username,
-                coins:  r[0].weekly_donations,
-            });
-        }
-        lastLeader = r[0].username;
     }
 
     const list = document.getElementById('ranking-list');
@@ -345,12 +326,7 @@ window.claimReward = async (rewardId, type) => {
         await supabase.from('players').update({
             wallet_coins: myWallet, claimed_rewards: myClaimedRewards, videos: myVideos,
         }).eq('username', currentPlayer);
-
         renderUI(); renderRewardsUI(); showRewardModal(reward, wonVideo);
-
-        // 🔔 NOTIFICACIÓN — recompensa canjeada
-        notifyOtherPlayer('reward', currentPlayer, { rewardTitle: reward.title });
-
     } catch (e) {
         myWallet -= reward.coins;
         myClaimedRewards = myClaimedRewards.filter(id => id !== rewardId);
@@ -386,9 +362,12 @@ function spawnModalConfetti() {
     for (let i = 0; i < 30; i++) {
         const p = document.createElement('div');
         p.className = 'confetti-piece';
-        p.style.left = (Math.random()*100)+'%'; p.style.background = colors[Math.floor(Math.random()*colors.length)];
-        p.style.animationDuration = (1.2+Math.random()*1.2)+'s'; p.style.animationDelay = (Math.random()*0.5)+'s';
-        p.style.width = (6+Math.random()*6)+'px'; p.style.height = (6+Math.random()*6)+'px';
+        p.style.left = (Math.random()*100)+'%';
+        p.style.background = colors[Math.floor(Math.random()*colors.length)];
+        p.style.animationDuration = (1.2+Math.random()*1.2)+'s';
+        p.style.animationDelay = (Math.random()*0.5)+'s';
+        p.style.width = (6+Math.random()*6)+'px';
+        p.style.height = (6+Math.random()*6)+'px';
         p.style.borderRadius = Math.random()>0.5?'50%':'2px';
         container.appendChild(p);
     }
@@ -403,10 +382,14 @@ function updateBackpackBadge() {
     if (myVideos.length > 0) { badge.textContent = myVideos.length; badge.style.display = 'flex'; }
     else { badge.style.display = 'none'; }
 }
+
 window.renderBackpack = () => {
     const list = document.getElementById('backpack-list');
     if (!list) return;
-    if (!myVideos.length) { list.innerHTML = `<p class="notif-empty">Aún no ganaste videos 🐾<small>Canjea recompensas para ganarlos</small></p>`; return; }
+    if (!myVideos.length) {
+        list.innerHTML = `<p class="notif-empty">Aún no ganaste videos 🐾<small>Canjea recompensas para ganarlos</small></p>`;
+        return;
+    }
     list.innerHTML = myVideos.map((v, idx) => `
         <div class="backpack-video-card" style="animation-delay:${idx*0.06}s">
             <iframe class="backpack-video-thumb" src="https://www.youtube-nocookie.com/embed/${v.id}?rel=0" allow="encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe>
@@ -425,9 +408,13 @@ async function loadComplaints() {
     if (error) { console.error(error); return; }
     allComplaints = data || []; renderComplaints(); updateNotifBadge();
 }
+
 function renderComplaints() {
     const list = document.getElementById('complaints-list');
-    if (!allComplaints.length) { list.innerHTML = `<p style="text-align:center;color:var(--text-soft);padding:24px;font-weight:700;">No hay denuncias por ahora 🐾</p>`; return; }
+    if (!allComplaints.length) {
+        list.innerHTML = `<p style="text-align:center;color:var(--text-soft);padding:24px;font-weight:700;">No hay denuncias por ahora 🐾</p>`;
+        return;
+    }
     list.innerHTML = allComplaints.map((c, idx) => {
         const isNew  = !c.seen_by?.includes(currentPlayer) && c.reported_by !== currentPlayer;
         const isMine = c.reported_by === currentPlayer;
@@ -451,58 +438,86 @@ function renderComplaints() {
         </div>`;
     }).join('');
 }
+
 async function uploadImage(file) {
-    const ext = file.name.split('.').pop(); const path = `${Date.now()}.${ext}`;
+    const ext = file.name.split('.').pop();
+    const path = `${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from('complaint-images').upload(path, file);
     if (error) throw error;
     return supabase.storage.from('complaint-images').getPublicUrl(path).data.publicUrl;
 }
+
 document.getElementById('btn-submit-complaint').onclick = async () => {
-    const category=document.getElementById('c-category').value, description=document.getElementById('c-description').value.trim(), severity=document.getElementById('c-severity').value, imageFile=document.getElementById('c-image').files[0];
+    const category    = document.getElementById('c-category').value;
+    const description = document.getElementById('c-description').value.trim();
+    const severity    = document.getElementById('c-severity').value;
+    const imageFile   = document.getElementById('c-image').files[0];
     if (!category)    { showMessage('Elige una categoría','error','complaint-msg'); return; }
     if (!description) { showMessage('Escribe qué pasó','error','complaint-msg'); return; }
     if (!severity)    { showMessage('Elige nivel de gravedad','error','complaint-msg'); return; }
-    const btn=document.getElementById('btn-submit-complaint'); btn.disabled=true; btn.textContent='Enviando...';
+    const btn = document.getElementById('btn-submit-complaint');
+    btn.disabled = true; btn.textContent = 'Enviando...';
     try {
-        let image_url=null; if (imageFile) image_url=await uploadImage(imageFile);
-        const {error}=await supabase.from('complaints').insert([{reported_by:currentPlayer,category,description,severity,image_url,status:'abierta',seen_by:[currentPlayer]}]);
+        let image_url = null;
+        if (imageFile) image_url = await uploadImage(imageFile);
+        const { error } = await supabase.from('complaints').insert([{
+            reported_by: currentPlayer, category, description, severity,
+            image_url, status: 'abierta', seen_by: [currentPlayer],
+        }]);
         if (error) throw error;
-        ['c-category','c-description','c-severity','c-image'].forEach(id=>document.getElementById(id).value='');
-        document.querySelectorAll('.severity-btn').forEach(b=>b.classList.remove('active'));
-        document.getElementById('complaint-form').style.display='none';
-        document.getElementById('btn-new-complaint').style.display='block';
+        ['c-category','c-description','c-severity','c-image'].forEach(id => document.getElementById(id).value = '');
+        document.querySelectorAll('.severity-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('complaint-form').style.display = 'none';
+        document.getElementById('btn-new-complaint').style.display = 'block';
         showMessage('¡Denuncia enviada! 🚨','success','action-message');
-
-        // 🔔 NOTIFICACIÓN — nueva denuncia
-        notifyOtherPlayer('complaint', currentPlayer, { category });
-
-    } catch(e) { showMessage('Error al enviar.','error','complaint-msg'); console.error(e); }
-    finally { btn.disabled=false; btn.textContent='Enviar denuncia 🚨'; }
+    } catch(e) {
+        showMessage('Error al enviar.','error','complaint-msg');
+        console.error(e);
+    } finally {
+        btn.disabled = false; btn.textContent = 'Enviar denuncia 🚨';
+    }
 };
-window.resolveComplaint = async (id,status) => { await supabase.from('complaints').update({status}).eq('id',id); };
-window.deleteComplaint  = async (id) => { if (!confirm('¿Eliminar?')) return; await supabase.from('complaints').delete().eq('id',id); };
+
+window.resolveComplaint = async (id, status) => {
+    await supabase.from('complaints').update({ status }).eq('id', id);
+};
+window.deleteComplaint = async (id) => {
+    if (!confirm('¿Eliminar?')) return;
+    await supabase.from('complaints').delete().eq('id', id);
+};
 
 // ==========================
 // NOTIFICACIONES IN-APP
 // ==========================
 function updateNotifBadge() {
-    const unseen=allComplaints.filter(c=>!c.seen_by?.includes(currentPlayer)&&c.reported_by!==currentPlayer).length;
-    const badge=document.getElementById('notif-badge');
-    if (unseen>0){badge.textContent=unseen;badge.style.display='flex';}else{badge.style.display='none';}
+    const unseen = allComplaints.filter(c => !c.seen_by?.includes(currentPlayer) && c.reported_by !== currentPlayer).length;
+    const badge  = document.getElementById('notif-badge');
+    if (unseen > 0) { badge.textContent = unseen; badge.style.display = 'flex'; }
+    else { badge.style.display = 'none'; }
     renderNotifPanel();
 }
+
 function renderNotifPanel() {
-    const list=document.getElementById('notif-list');
-    const unread=allComplaints.filter(c=>!c.seen_by?.includes(currentPlayer)&&c.reported_by!==currentPlayer);
-    const read=allComplaints.filter(c=>c.seen_by?.includes(currentPlayer)||c.reported_by===currentPlayer).slice(0,5);
-    if (!unread.length&&!read.length){list.innerHTML=`<p class="notif-empty">No hay notificaciones 🐾</p>`;return;}
-    const item=(c,isNew)=>{const date=new Date(c.created_at).toLocaleDateString('es',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});return `<div class="notif-item ${isNew?'nueva':''}">🚨 <strong>${c.reported_by}</strong> hizo una denuncia: <em>${c.category}</em><div class="notif-time">${date}</div></div>`;};
-    list.innerHTML=unread.map(c=>item(c,true)).join('')+(read.length?`<p style="font-size:0.78rem;color:var(--text-soft);padding:8px 0;font-weight:700;">— Anteriores —</p>`:'')+read.map(c=>item(c,false)).join('');
+    const list   = document.getElementById('notif-list');
+    const unread = allComplaints.filter(c => !c.seen_by?.includes(currentPlayer) && c.reported_by !== currentPlayer);
+    const read   = allComplaints.filter(c => c.seen_by?.includes(currentPlayer) || c.reported_by === currentPlayer).slice(0, 5);
+    if (!unread.length && !read.length) { list.innerHTML = `<p class="notif-empty">No hay notificaciones 🐾</p>`; return; }
+    const item = (c, isNew) => {
+        const date = new Date(c.created_at).toLocaleDateString('es', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+        return `<div class="notif-item ${isNew?'nueva':''}">🚨 <strong>${c.reported_by}</strong> hizo una denuncia: <em>${c.category}</em><div class="notif-time">${date}</div></div>`;
+    };
+    list.innerHTML =
+        unread.map(c => item(c, true)).join('') +
+        (read.length ? `<p style="font-size:0.78rem;color:var(--text-soft);padding:8px 0;font-weight:700;">— Anteriores —</p>` : '') +
+        read.map(c => item(c, false)).join('');
 }
+
 window.markNotifsSeen = async () => {
-    const unseen=allComplaints.filter(c=>!c.seen_by?.includes(currentPlayer)&&c.reported_by!==currentPlayer);
-    for (const c of unseen) await supabase.from('complaints').update({seen_by:[...(c.seen_by||[]),currentPlayer]}).eq('id',c.id);
-    document.getElementById('notif-badge').style.display='none';
+    const unseen = allComplaints.filter(c => !c.seen_by?.includes(currentPlayer) && c.reported_by !== currentPlayer);
+    for (const c of unseen) {
+        await supabase.from('complaints').update({ seen_by: [...(c.seen_by || []), currentPlayer] }).eq('id', c.id);
+    }
+    document.getElementById('notif-badge').style.display = 'none';
 };
 
 // ==========================
@@ -510,18 +525,26 @@ window.markNotifsSeen = async () => {
 // ==========================
 async function loadData(name) {
     currentPlayer = name;
-    document.getElementById('player-avatar').textContent = AVATARS[name]||'🐾';
+    document.getElementById('player-avatar').textContent = AVATARS[name] || '🐾';
     document.getElementById('player-name').textContent   = name;
 
-    let { data: u, error: ue } = await supabase.from('players').select('*').eq('username',name).maybeSingle();
-    if (ue) { showMessage('Error al cargar tu perfil 😿','error'); return; }
+    let { data: u, error: ue } = await supabase.from('players').select('*').eq('username', name).maybeSingle();
+    if (ue) { showMessage('Error al cargar tu perfil 😿', 'error'); return; }
 
     if (!u) {
-        myWallet=100; myStreak=0; myTotalDonated=0; myClaimedRewards=[]; myVideos=[];
-        await supabase.from('players').insert([{username:name,wallet_coins:100,last_claim:new Date().toISOString().split('T')[0],weekly_donations:0,total_donated:0,streak:0,claimed_rewards:[],videos:[]}]);
+        myWallet = 100; myStreak = 0; myTotalDonated = 0; myClaimedRewards = []; myVideos = [];
+        await supabase.from('players').insert([{
+            username: name, wallet_coins: 100,
+            last_claim: new Date().toISOString().split('T')[0],
+            weekly_donations: 0, total_donated: 0,
+            streak: 0, claimed_rewards: [], videos: [],
+        }]);
     } else {
-        myWallet=u.wallet_coins??100; myStreak=u.streak??0; myTotalDonated=u.total_donated??0;
-        myClaimedRewards=u.claimed_rewards??[]; myVideos=u.videos??[];
+        myWallet         = u.wallet_coins     ?? 100;
+        myStreak         = u.streak           ?? 0;
+        myTotalDonated   = u.total_donated    ?? 0;
+        myClaimedRewards = u.claimed_rewards  ?? [];
+        myVideos         = u.videos           ?? [];
         await checkDailyReward(u);
     }
 
@@ -530,20 +553,13 @@ async function loadData(name) {
 
     renderGamesTab(currentPlayer, myWallet, async (delta) => { await walletChange(delta); });
 
-    // 🔔 Activar notificaciones push automáticamente al login
-    const alreadySubscribed = await isPushSubscribed();
-    if (!alreadySubscribed) {
-        // Esperar un poco para no interrumpir la carga
-        setTimeout(() => subscribeToPush(name), 3000);
-    }
-
-    // Render botón toggle notificaciones
-    renderNotifToggle(name, 'notif-toggle-wrap');
-
     supabase.channel('db-changes')
-        .on('postgres_changes',{event:'UPDATE',schema:'public',table:'bank'},(p)=>{sharedBank=p.new.total_coins;sharedHistory=p.new.history;renderUI();bumpBankNum();})
-        .on('postgres_changes',{event:'UPDATE',schema:'public',table:'players'},()=>updateRankingUI())
-        .on('postgres_changes',{event:'*',schema:'public',table:'complaints'},()=>loadComplaints())
+        .on('postgres_changes', { event:'UPDATE', schema:'public', table:'bank' }, (p) => {
+            sharedBank = p.new.total_coins; sharedHistory = p.new.history;
+            renderUI(); bumpBankNum();
+        })
+        .on('postgres_changes', { event:'UPDATE', schema:'public', table:'players' }, () => updateRankingUI())
+        .on('postgres_changes', { event:'*',      schema:'public', table:'complaints' }, () => loadComplaints())
         .subscribe();
 
     document.getElementById('login-screen').classList.remove('active');
@@ -552,27 +568,31 @@ async function loadData(name) {
 }
 
 async function checkDailyReward(user) {
-    const hoy=new Date().toISOString().split('T')[0];
-    const ayer=new Date(Date.now()-86400000).toISOString().split('T')[0];
-    if (user.last_claim===hoy) return;
-    const newStreak=user.last_claim===ayer?(user.streak||0)+1:1;
-    myWallet+=DAILY_REWARD_COINS; myStreak=newStreak;
-    showMessage(`¡Hola ${currentPlayer}! 🐾 +${DAILY_REWARD_COINS} monedas · Racha: ${newStreak} 🔥`,'success');
+    const hoy  = new Date().toISOString().split('T')[0];
+    const ayer = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    if (user.last_claim === hoy) return;
+    const newStreak = user.last_claim === ayer ? (user.streak || 0) + 1 : 1;
+    myWallet += DAILY_REWARD_COINS; myStreak = newStreak;
+    showMessage(`¡Hola ${currentPlayer}! 🐾 +${DAILY_REWARD_COINS} monedas · Racha: ${newStreak} 🔥`, 'success');
     spawnCoins(4);
-    await supabase.from('players').update({wallet_coins:myWallet,last_claim:hoy,streak:newStreak}).eq('username',currentPlayer);
+    await supabase.from('players').update({ wallet_coins: myWallet, last_claim: hoy, streak: newStreak }).eq('username', currentPlayer);
     checkNewRewards(); renderRewardsUI();
 }
 
 async function refreshSharedData() {
-    const {data:b,error}=await supabase.from('bank').select('*').eq('id',1).single();
-    if (error){console.error(error);return;}
-    if (b){sharedBank=b.total_coins;sharedHistory=b.history||[];}
+    const { data: b, error } = await supabase.from('bank').select('*').eq('id', 1).single();
+    if (error) { console.error(error); return; }
+    if (b) { sharedBank = b.total_coins; sharedHistory = b.history || []; }
 }
 
+// ==========================
+// LOGIN / LOGOUT
+// ==========================
 document.getElementById('franco-btn').onclick = () => loadData('Franco');
 document.getElementById('jess-btn').onclick   = () => loadData('Jess');
 document.getElementById('logout-btn').onclick  = () => {
-    currentPlayer=null; myWallet=0; myStreak=0; myTotalDonated=0; myClaimedRewards=[]; myVideos=[];
+    currentPlayer = null; myWallet = 0; myStreak = 0; myTotalDonated = 0;
+    myClaimedRewards = []; myVideos = [];
     document.getElementById('game-screen').classList.remove('active');
     document.getElementById('login-screen').classList.add('active');
 };
