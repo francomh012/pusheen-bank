@@ -105,6 +105,7 @@
   <!-- TABS — solo iconos -->
   <div class="tabs">
     <button class="tab active" data-tab="ranking"    title="Ranking">🏆</button>
+    <button class="tab"        data-tab="journey"    title="Camino">🐾</button>
     <button class="tab"        data-tab="games"      title="Juegos">🎮</button>
     <button class="tab"        data-tab="rewards"    title="Recompensas">🎁</button>
     <button class="tab"        data-tab="history"    title="Historial">📜</button>
@@ -118,6 +119,9 @@
     </div>
     <div id="ranking-list" class="ranking-list"></div>
   </section>
+
+  <!-- TAB CAMINO DE PATITAS -->
+  <section id="tab-journey" class="tab-content"></section>
 
   <section id="tab-games" class="tab-content"></section>
 
@@ -229,7 +233,6 @@
 
 <script type="module" src="assets/js/main.js"></script>
 <script>
-  // SW
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js').then(reg => {
@@ -249,7 +252,6 @@
     });
   };
 
-  // PWA install
   let deferredPrompt = null;
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault(); deferredPrompt = e;
@@ -265,7 +267,6 @@
   document.getElementById('install-dismiss').onclick = () => document.getElementById('install-banner').style.display = 'none';
   window.addEventListener('appinstalled', () => document.getElementById('install-banner').style.display = 'none');
 
-  // Tabs
   document.querySelectorAll('.tab').forEach(tab => {
     tab.addEventListener('click', () => {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -275,7 +276,6 @@
     });
   });
 
-  // Severity
   document.querySelectorAll('.severity-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.severity-btn').forEach(b => b.classList.remove('active'));
@@ -284,7 +284,6 @@
     });
   });
 
-  // Denuncia
   document.getElementById('btn-new-complaint').onclick = () => {
     document.getElementById('complaint-form').style.display = 'block';
     document.getElementById('btn-new-complaint').style.display = 'none';
@@ -295,7 +294,6 @@
     document.getElementById('btn-new-complaint').style.display = 'block';
   };
 
-  // Paneles
   function openPanel(id) {
     document.getElementById(id).style.display = 'flex';
     document.getElementById('side-overlay').style.display = 'block';
@@ -310,12 +308,10 @@
   document.getElementById('notif-close').onclick = closeAllPanels;
   document.getElementById('side-overlay').onclick = closeAllPanels;
 
-  // Volver del juego
   document.getElementById('btn-back-game').onclick = () => {
     document.getElementById('game-fullscreen').classList.remove('active');
   };
 
-  // Modal recompensa
   document.getElementById('reward-modal-close').onclick = closeRewardModal;
   document.getElementById('reward-overlay').onclick = closeRewardModal;
   function closeRewardModal() {
@@ -325,7 +321,6 @@
     document.getElementById('reward-video-wrap').style.display = 'none';
   }
 
-  // Partículas
   window.spawnCoins = function(count=6) {
     const c = document.getElementById('coin-particles'); if(!c) return;
     for(let i=0; i<count; i++){

@@ -1,0 +1,142 @@
+/* ==============================
+   CAMINO DE PATITAS 🐾
+   Agregar al final de main.css
+============================== */
+
+/* Wrapper principal */
+.journey-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding-bottom: 40px;
+}
+
+/* Header del camino */
+.journey-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px 12px;
+  background: var(--white);
+  border-bottom: 2px solid var(--pink-soft);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.journey-pusheen {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  animation: float 3s ease-in-out infinite;
+  filter: drop-shadow(0 3px 8px rgba(200,80,140,0.2));
+}
+.journey-title {
+  font-size: 1rem;
+  font-weight: 900;
+  color: var(--pink-deep);
+}
+.journey-progress {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--text-mid);
+}
+.journey-donated {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+
+/* Scroll del camino */
+.journey-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: calc(100vh - 280px);
+  background: linear-gradient(180deg, #fff8fc 0%, #fff0f5 100%);
+  padding: 20px 0;
+  display: flex;
+  justify-content: center;
+}
+
+/* SVG del camino */
+.journey-svg {
+  display: block;
+  margin: 0 auto;
+}
+
+/* Botón canjear dentro del SVG */
+.journey-reward-btn {
+  background: var(--pink-main);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 9px;
+  font-weight: 900;
+  cursor: pointer;
+  width: 100%;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.journey-reward-btn:active {
+  transform: scale(0.94);
+  background: var(--pink-deep);
+}
+
+/* Modal de recompensa del camino */
+.journey-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(60,10,40,0.5);
+  backdrop-filter: blur(3px);
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.journey-modal-box {
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  padding: 28px 24px 24px;
+  width: 100%;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 12px 60px rgba(200,80,140,0.3);
+  border: 3px solid var(--gold);
+  animation: popIn 0.4s cubic-bezier(.34,1.56,.64,1);
+  position: relative;
+  overflow: hidden;
+}
+.journey-modal-icon  { font-size: 3rem; }
+.journey-modal-title { font-size: 1.3rem; font-weight: 900; color: var(--pink-deep); text-align: center; }
+.journey-modal-desc  { font-size: 0.9rem; font-weight: 700; color: var(--text-mid); text-align: center; }
+.journey-modal-coins {
+  font-size: 1.5rem; font-weight: 900; color: var(--gold-deep);
+  background: #fffbe6; border: 2px solid var(--gold);
+  border-radius: 999px; padding: 8px 24px;
+}
+.journey-modal-video {
+  width: 100%; border-radius: var(--radius-md);
+  overflow: hidden; box-shadow: var(--shadow);
+}
+.journey-modal-video iframe {
+  width: 100%; height: 180px; border: none;
+}
+.journey-modal-btn {
+  background: linear-gradient(135deg, var(--gold), #ffb300);
+  color: var(--gold-deep); border: none; border-radius: 999px;
+  padding: 13px 40px; font-family: 'Nunito', sans-serif;
+  font-size: 1rem; font-weight: 900; cursor: pointer;
+  transition: all 0.15s; box-shadow: var(--shadow);
+}
+.journey-modal-btn:active { transform: scale(0.95); }
+
+/* Confetti del camino */
+.journey-confetti {
+  position: absolute; inset: 0;
+  pointer-events: none; overflow: hidden;
+}

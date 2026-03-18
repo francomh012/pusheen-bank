@@ -4,6 +4,7 @@
 
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 import { renderGamesTab } from './games.js';
+import { renderJourneyTab } from './journey.js';
 import {
   SUPABASE_URL, SUPABASE_KEY,
   AVATARS, RANKING_IMGS,
@@ -17,16 +18,17 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 // ==========================
 // ESTADO GLOBAL
 // ==========================
-let currentPlayer    = null;
-let myWallet         = 0;
-let sharedBank       = 0;
-let sharedHistory    = [];
-let isSaving         = false;
-let allComplaints    = [];
-let myStreak         = 0;
-let myTotalDonated   = 0;
-let myClaimedRewards = [];
-let myVideos         = [];
+let currentPlayer         = null;
+let myWallet              = 0;
+let sharedBank            = 0;
+let sharedHistory         = [];
+let isSaving              = false;
+let allComplaints         = [];
+let myStreak              = 0;
+let myTotalDonated        = 0;
+let myClaimedRewards      = [];
+let myVideos              = [];
+let myClaimedJourney      = []; // IDs de nodos del camino ya canjeados
 
 // ==========================
 // DOM
@@ -206,7 +208,13 @@ window.handleCoin = async (action, amount = 1) => {
         }
 
         updateRankingUI();
-        if (action === 'add') checkNewRewards();
+        if (action === 'add') {
+            checkNewRewards();
+            // Actualizar camino si está visible
+            if (document.getElementById('tab-journey')?.classList.contains('active')) {
+                renderJourneyTab(myTotalDonated, myClaimedJourney, handleJourneyReward);
+            }
+        }
         renderRewardsUI();
 
     } catch (e) {
@@ -337,7 +345,98 @@ window.claimReward = async (rewardId, type) => {
 };
 
 // ==========================
-// MODAL RECOMPENSA
+// CAMINO DE PATITAS — canjear
+// ==========================
+async function handleJourneyReward(nodeId, reward) {
+    if (myClaimedJourney.includes(nodeId)) return;
+
+    myWallet += reward.coins;
+    myClaimedJourney = [...myClaimedJourney, nodeId];
+
+    // ¿Sale video? Probabilidad aleatoria
+    const showVideo = Math.random() < VIDEO_PROBABILITY;
+    let wonVideo = null;
+    if (showVideo) {
+        const v  = PUSHEEN_VIDEOS[Math.floor(Math.random() * PUSHEEN_VIDEOS.length)];
+        wonVideo = { id: v.id, title: v.title, date: new Date().toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric' }) };
+        myVideos = [...myVideos, wonVideo];
+        updateBackpackBadge();
+    }
+
+    try {
+        await supabase.from('players').update({
+            wallet_coins:      myWallet,
+            claimed_journey:   myClaimedJourney,
+            videos:            myVideos,
+        }).eq('username', currentPlayer);
+
+        renderUI();
+        showJourneyRewardModal(reward, wonVideo);
+        spawnCoins(10);
+        // Rerenderizar camino
+        renderJourneyTab(myTotalDonated, myClaimedJourney, handleJourneyReward);
+
+    } catch (e) {
+        myWallet -= reward.coins;
+        myClaimedJourney = myClaimedJourney.filter(id => id !== nodeId);
+        if (wonVideo) myVideos = myVideos.filter(v => v.id !== wonVideo.id);
+        showMessage('Error al canjear.', 'error');
+        console.error(e);
+    }
+}
+
+function showJourneyRewardModal(reward, wonVideo = null) {
+    // Crear modal dinámico
+    const existing = document.getElementById('journey-modal-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'journey-modal-overlay';
+    overlay.className = 'journey-modal-overlay';
+
+    const videoHTML = wonVideo ? `
+        <div class="journey-modal-video">
+            <iframe src="https://www.youtube-nocookie.com/embed/${wonVideo.id}?autoplay=1&mute=0&rel=0"
+                allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe>
+        </div>
+        <p style="font-size:0.78rem;font-weight:800;color:#1a7a3a;">✅ Video guardado en tu mochila 🎒</p>
+    ` : '';
+
+    // Confetti
+    let confettiHTML = '<div class="journey-confetti" id="j-confetti"></div>';
+
+    overlay.innerHTML = `
+        <div class="journey-modal-box">
+            ${confettiHTML}
+            <div class="journey-modal-icon">${reward.icon}</div>
+            <h2 class="journey-modal-title">${reward.title}</h2>
+            <p class="journey-modal-desc">¡Llegaste al nodo ${reward.node}!</p>
+            <div class="journey-modal-coins">+${reward.coins} 🪙</div>
+            ${videoHTML}
+            <button class="journey-modal-btn" id="journey-modal-close-btn">¡Genial! 🐾</button>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // Confetti
+    const confettiEl = document.getElementById('j-confetti');
+    if (confettiEl) {
+        const colors = ['#ff6fa8','#ffc94d','#ffaac9','#a8e6c0','#ff6b6b'];
+        for (let i = 0; i < 30; i++) {
+            const p = document.createElement('div');
+            p.className = 'confetti-piece';
+            p.style.cssText = `left:${Math.random()*100}%;background:${colors[Math.floor(Math.random()*colors.length)]};animation-duration:${1.2+Math.random()*1.2}s;animation-delay:${Math.random()*0.5}s;width:${6+Math.random()*6}px;height:${6+Math.random()*6}px;border-radius:${Math.random()>0.5?'50%':'2px'}`;
+            confettiEl.appendChild(p);
+        }
+    }
+
+    document.getElementById('journey-modal-close-btn').onclick = () => overlay.remove();
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+}
+
+// ==========================
+// MODAL RECOMPENSA (tab premios)
 // ==========================
 function showRewardModal(reward, wonVideo = null) {
     document.getElementById('reward-modal-title').textContent = `${reward.icon} ¡${reward.title}!`;
@@ -532,19 +631,21 @@ async function loadData(name) {
     if (ue) { showMessage('Error al cargar tu perfil 😿', 'error'); return; }
 
     if (!u) {
-        myWallet = 100; myStreak = 0; myTotalDonated = 0; myClaimedRewards = []; myVideos = [];
+        myWallet = 100; myStreak = 0; myTotalDonated = 0;
+        myClaimedRewards = []; myVideos = []; myClaimedJourney = [];
         await supabase.from('players').insert([{
             username: name, wallet_coins: 100,
             last_claim: new Date().toISOString().split('T')[0],
             weekly_donations: 0, total_donated: 0,
-            streak: 0, claimed_rewards: [], videos: [],
+            streak: 0, claimed_rewards: [], videos: [], claimed_journey: [],
         }]);
     } else {
-        myWallet         = u.wallet_coins     ?? 100;
-        myStreak         = u.streak           ?? 0;
-        myTotalDonated   = u.total_donated    ?? 0;
-        myClaimedRewards = u.claimed_rewards  ?? [];
-        myVideos         = u.videos           ?? [];
+        myWallet         = u.wallet_coins       ?? 100;
+        myStreak         = u.streak             ?? 0;
+        myTotalDonated   = u.total_donated      ?? 0;
+        myClaimedRewards = u.claimed_rewards    ?? [];
+        myVideos         = u.videos             ?? [];
+        myClaimedJourney = u.claimed_journey    ?? [];
         await checkDailyReward(u);
     }
 
@@ -552,6 +653,7 @@ async function loadData(name) {
     await loadComplaints();
 
     renderGamesTab(currentPlayer, myWallet, async (delta) => { await walletChange(delta); });
+    renderJourneyTab(myTotalDonated, myClaimedJourney, handleJourneyReward);
 
     supabase.channel('db-changes')
         .on('postgres_changes', { event:'UPDATE', schema:'public', table:'bank' }, (p) => {
@@ -585,14 +687,11 @@ async function refreshSharedData() {
     if (b) { sharedBank = b.total_coins; sharedHistory = b.history || []; }
 }
 
-// ==========================
-// LOGIN / LOGOUT
-// ==========================
 document.getElementById('franco-btn').onclick = () => loadData('Franco');
 document.getElementById('jess-btn').onclick   = () => loadData('Jess');
 document.getElementById('logout-btn').onclick  = () => {
     currentPlayer = null; myWallet = 0; myStreak = 0; myTotalDonated = 0;
-    myClaimedRewards = []; myVideos = [];
+    myClaimedRewards = []; myVideos = []; myClaimedJourney = [];
     document.getElementById('game-screen').classList.remove('active');
     document.getElementById('login-screen').classList.add('active');
 };
