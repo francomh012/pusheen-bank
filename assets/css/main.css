@@ -521,3 +521,27 @@ body {
   .pusheen-main { width:210px; height:210px; }
   .bank-num { font-size: 2.6rem; }
 }
+
+/* ==============================
+   NOTIFICACIONES PUSH — botón toggle
+============================== */
+.btn-notif-toggle {
+  width: 100%;
+  padding: 13px;
+  background: var(--pink-light);
+  border: 2.5px solid var(--pink-soft);
+  border-radius: var(--radius-lg);
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-mid);
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 12px;
+}
+.btn-notif-toggle.active {
+  background: #e0f5e9;
+  border-color: #a8e6c0;
+  color: #1a7a3a;
+}
+.btn-notif-toggle:active { transform: scale(0.97); }

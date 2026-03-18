@@ -2,7 +2,7 @@
 // SERVICE WORKER — Pusheen Bank 🐾
 // ================================
 
-const CACHE_NAME = 'pusheen-bank-v2';
+const CACHE_NAME = 'pusheen-bank-v3';
 
 const ASSETS_TO_CACHE = [
   '/',
@@ -11,6 +11,8 @@ const ASSETS_TO_CACHE = [
   '/assets/css/games.css',
   '/assets/js/main.js',
   '/assets/js/games.js',
+  '/assets/js/config.js',
+  '/assets/js/notifications.js',
   '/assets/img/pusheen.gif',
   '/assets/img/amigos.png',
   '/assets/img/corona1.png',
@@ -20,80 +22,119 @@ const ASSETS_TO_CACHE = [
   '/manifest.json',
 ];
 
-// ✅ Solo cachear URLs http/https
 function isCacheable(url) {
   return url.startsWith('http://') || url.startsWith('https://');
 }
 
+// ==========================
+// INSTALL
+// ==========================
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return Promise.allSettled(
+    caches.open(CACHE_NAME).then(cache =>
+      Promise.allSettled(
         ASSETS_TO_CACHE.map(url =>
           cache.add(url).catch(err => console.warn('No se pudo cachear:', url, err))
         )
-      );
-    })
+      )
+    )
   );
   self.skipWaiting();
 });
 
+// ==========================
+// ACTIVATE
+// ==========================
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(
-        keys
-          .filter(key => key !== CACHE_NAME)
-          .map(key => caches.delete(key))
-      )
+      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
     )
   );
   self.clients.claim();
 });
 
+// ==========================
+// FETCH
+// ==========================
 self.addEventListener('fetch', event => {
   const url = event.request.url;
-
-  // ✅ Ignorar chrome-extension y cualquier cosa no http/https
   if (!isCacheable(url)) return;
+  if (url.includes('supabase.co') || url.includes('youtube') || url.includes('giphy.com') || url.includes('/api/')) return;
 
-  // Supabase, YouTube y Giphy siempre van a la red
-  if (
-    url.includes('supabase.co') ||
-    url.includes('youtube') ||
-    url.includes('giphy.com') ||
-    url.includes('/api/')
-  ) return;
-
-  // Red primero, caché como respaldo
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        // ✅ Solo cachear respuestas válidas de URLs http/https
-        if (
-          response &&
-          response.status === 200 &&
-          response.type !== 'opaque' &&
-          isCacheable(event.request.url)
-        ) {
-          const responseClone = response.clone();
+        if (response && response.status === 200 && response.type !== 'opaque' && isCacheable(event.request.url)) {
           caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, responseClone).catch(() => {});
+            cache.put(event.request, response.clone()).catch(() => {});
           });
         }
         return response;
       })
-      .catch(() => {
-        return caches.match(event.request).then(cached => {
+      .catch(() =>
+        caches.match(event.request).then(cached => {
           if (cached) return cached;
-          if (event.request.mode === 'navigate') {
-            return caches.match('/index.html');
-          }
-        });
-      })
+          if (event.request.mode === 'navigate') return caches.match('/index.html');
+        })
+      )
   );
 });
 
+// ==========================
+// 🔔 PUSH — recibir notificación
+// ==========================
+self.addEventListener('push', event => {
+  if (!event.data) return;
+
+  let data;
+  try { data = event.data.json(); }
+  catch { data = { title: 'Pusheen Bank 🐾', body: event.data.text() }; }
+
+  const options = {
+    body:    data.body  || '¡Hay novedades!',
+    icon:    data.icon  || '/assets/img/icon.png',
+    badge:   '/assets/img/icon.png',
+    data:    { url: data.url || '/' },
+    vibrate: [200, 100, 200],
+    actions: [
+      { action: 'open', title: 'Ver ahora 🐾' },
+      { action: 'close', title: 'Cerrar' },
+    ],
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'Pusheen Bank 🐾', options)
+  );
+});
+
+// ==========================
+// CLICK en notificación
+// ==========================
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+
+  if (event.action === 'close') return;
+
+  const url = event.notification.data?.url || '/';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      // Si ya hay una ventana abierta, enfocala
+      for (const client of clientList) {
+        if (client.url.includes('pusheen-bank') && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // Si no, abrir nueva
+      if (clients.openWindow) return clients.openWindow(url);
+    })
+  );
+});
+
+// ==========================
+// MENSAJE (actualización)
+// ==========================
 self.addEventListener('message', event => {
   if (event.data === 'skipWaiting') self.skipWaiting();
 });
