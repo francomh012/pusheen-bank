@@ -6,7 +6,7 @@
 import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
 
 // Tu VAPID public key (la misma que pusiste en Vercel)
-const VAPID_PUBLIC_KEY = 'P23dNHZ8jUFvfzfZWKw9GdAHc2oM6ki1ZVJEKx9lApmSJrylgUtx0VuRrViLCEJuOYdiJTpnoxNuzeU0sObKbw';
+const VAPID_PUBLIC_KEY = 'BM14q_UzV9McdLFWI9pQ4A5Ne1iZS7hOIUDA52DfNyoJ-yQRRPvMPCMl2CcfFq8AEm73vf1UMDZ-U_FyoqF-Z8A';
 
 // ==========================
 // CONVERTIR VAPID KEY

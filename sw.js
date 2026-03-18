@@ -2,7 +2,7 @@
 // SERVICE WORKER — Pusheen Bank 🐾
 // ================================
 
-const CACHE_NAME = 'pusheen-bank-v3';
+const CACHE_NAME = 'pusheen-bank-v4'; // ← subí la versión para limpiar caché vieja
 
 const ASSETS_TO_CACHE = [
   '/',
@@ -60,14 +60,26 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = event.request.url;
   if (!isCacheable(url)) return;
-  if (url.includes('supabase.co') || url.includes('youtube') || url.includes('giphy.com') || url.includes('/api/')) return;
+  if (
+    url.includes('supabase.co') ||
+    url.includes('youtube') ||
+    url.includes('giphy.com') ||
+    url.includes('/api/')
+  ) return;
 
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        if (response && response.status === 200 && response.type !== 'opaque' && isCacheable(event.request.url)) {
+        // ✅ Clonar ANTES de usar — fix del error "body already used"
+        if (
+          response &&
+          response.status === 200 &&
+          response.type !== 'opaque' &&
+          isCacheable(event.request.url)
+        ) {
+          const responseClone = response.clone();
           caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, response.clone()).catch(() => {});
+            cache.put(event.request, responseClone).catch(() => {});
           });
         }
         return response;
@@ -92,13 +104,13 @@ self.addEventListener('push', event => {
   catch { data = { title: 'Pusheen Bank 🐾', body: event.data.text() }; }
 
   const options = {
-    body:    data.body  || '¡Hay novedades!',
-    icon:    data.icon  || '/assets/img/icon.png',
+    body:    data.body || '¡Hay novedades!',
+    icon:    data.icon || '/assets/img/icon.png',
     badge:   '/assets/img/icon.png',
     data:    { url: data.url || '/' },
     vibrate: [200, 100, 200],
     actions: [
-      { action: 'open', title: 'Ver ahora 🐾' },
+      { action: 'open',  title: 'Ver ahora 🐾' },
       { action: 'close', title: 'Cerrar' },
     ],
   };
@@ -113,27 +125,24 @@ self.addEventListener('push', event => {
 // ==========================
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-
   if (event.action === 'close') return;
 
   const url = event.notification.data?.url || '/';
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
-      // Si ya hay una ventana abierta, enfocala
       for (const client of clientList) {
         if (client.url.includes('pusheen-bank') && 'focus' in client) {
           return client.focus();
         }
       }
-      // Si no, abrir nueva
       if (clients.openWindow) return clients.openWindow(url);
     })
   );
 });
 
 // ==========================
-// MENSAJE (actualización)
+// MENSAJE (actualización PWA)
 // ==========================
 self.addEventListener('message', event => {
   if (event.data === 'skipWaiting') self.skipWaiting();
