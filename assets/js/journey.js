@@ -22,50 +22,54 @@ const JOURNEY_REWARDS = [
 ];
 
 // ==========================
-// CONSTRUIR NODOS — camino muy curveado
-// zigzag exagerado: izquierda lejana ↔ derecha lejana
+// CONSTRUIR NODOS
+// Usa % del ancho del viewBox para que escale en cualquier cel
 // ==========================
-function buildNodes() {
-  const nodes = [];
-  // Posiciones X más extremas para mayor curvatura
-  // Patrón: far-left, mid-left, center, mid-right, far-right, mid-right, center, mid-left...
-  const xPositions = [40, 90, 160, 230, 280, 230, 160, 90, 40, 90];
+function buildNodes(vw) {
+  // vw = ancho del viewBox (ancho real de pantalla)
+  const margin = vw * 0.10; // 10% de margen en cada lado
+  const L  = margin;
+  const ML = vw * 0.28;
+  const C  = vw * 0.50;
+  const MR = vw * 0.72;
+  const R  = vw - margin;
 
+  // Patrón zigzag pronunciado: L → ML → C → MR → R → MR → C → ML → L → ML
+  const xPattern = [L, ML, C, MR, R, MR, C, ML, L, ML];
+
+  const nodes = [];
   for (let i = 0; i < TOTAL_NODES; i++) {
     const nodeNum  = i + 1;
     const isReward = nodeNum % REWARD_EVERY === 0;
     const reward   = isReward ? JOURNEY_REWARDS.find(r => r.node === nodeNum) : null;
-    const x        = xPositions[i % xPositions.length];
-    // Y sube de abajo hacia arriba, con más espacio entre nodos
-    const y        = 3000 - (i * 60);
-
-    nodes.push({ id: nodeNum, x, y, isReward, reward, size: isReward ? 38 : 26 });
+    const x        = xPattern[i % xPattern.length];
+    const y        = 3000 - (i * 58);
+    nodes.push({ id: nodeNum, x, y, isReward, reward, size: isReward ? 40 : 28 });
   }
   return nodes;
 }
 
 // ==========================
-// LÍNEA DEL CAMINO — curvas Bezier pronunciadas
+// LÍNEA DEL CAMINO — Bezier curveadas
 // ==========================
 function buildPathLine(nodes) {
   if (nodes.length < 2) return '';
-
   let d = `M ${nodes[0].x} ${nodes[0].y}`;
-
   for (let i = 1; i < nodes.length; i++) {
     const p = nodes[i - 1];
     const c = nodes[i];
-    // Control points exagerados para curvas pronunciadas
-    const cpX1 = p.x + (c.x - p.x) * 0.1;
-    const cpY1 = p.y - Math.abs(c.y - p.y) * 0.5;
-    const cpX2 = c.x - (c.x - p.x) * 0.1;
-    const cpY2 = c.y + Math.abs(c.y - p.y) * 0.5;
+    const dy = Math.abs(c.y - p.y);
+    const dx = c.x - p.x;
+    // Control points: exagerados horizontalmente para curvas pronunciadas
+    const cpX1 = p.x + dx * 0.05;
+    const cpY1 = p.y - dy * 0.6;
+    const cpX2 = c.x - dx * 0.05;
+    const cpY2 = c.y + dy * 0.6;
     d += ` C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${c.x} ${c.y}`;
   }
-
   return `
-    <path d="${d}" fill="none" stroke="#ffd6e7" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="${d}" fill="none" stroke="#ffaac9" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="14 10"/>
+    <path d="${d}" fill="none" stroke="#ffd6e7" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="${d}" fill="none" stroke="#ffaac9" stroke-width="6"  stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="16 12"/>
   `;
 }
 
@@ -80,19 +84,23 @@ function renderNode(node, currentNode, claimedJourney, claimedPaws) {
   const canClaimPaw = !node.isReward && reached && !pawClaimed;
 
   if (node.isReward) {
-    // Nodo de recompensa — imagen grande con animación
-    const opacity  = reached ? '1' : '0.35';
-    const filter   = claimed ? 'grayscale(1) brightness(0.8)' : reached ? 'drop-shadow(0 0 6px #ffc94d)' : 'grayscale(1)';
+    const opacity = reached ? '1' : '0.3';
+    const filter  = claimed
+      ? 'grayscale(1) brightness(0.8)'
+      : reached
+        ? 'drop-shadow(0 0 8px #ffc94d)'
+        : 'grayscale(1)';
 
     return `
       <g class="journey-node journey-node-reward ${canClaim ? 'can-claim' : ''}"
          data-node="${node.id}" data-type="reward"
-         transform="translate(${node.x}, ${node.y})" style="cursor:${canClaim ? 'pointer' : 'default'}">
+         transform="translate(${node.x}, ${node.y})"
+         style="cursor:${canClaim ? 'pointer' : 'default'}">
 
         ${canClaim ? `
-        <circle cx="0" cy="0" r="${node.size + 10}" fill="#ffc94d" opacity="0.2">
-          <animate attributeName="r" values="${node.size+8};${node.size+14};${node.size+8}" dur="1.5s" repeatCount="indefinite"/>
-          <animate attributeName="opacity" values="0.2;0.05;0.2" dur="1.5s" repeatCount="indefinite"/>
+        <circle cx="0" cy="0" r="${node.size + 12}" fill="#ffc94d" opacity="0.15">
+          <animate attributeName="r" values="${node.size+10};${node.size+18};${node.size+10}" dur="1.5s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.15;0.05;0.15" dur="1.5s" repeatCount="indefinite"/>
         </circle>` : ''}
 
         <image href="assets/img/patita.png"
@@ -101,16 +109,15 @@ function renderNode(node, currentNode, claimedJourney, claimedPaws) {
           opacity="${opacity}"
           style="filter:${filter}"/>
 
-        ${claimed ? `<text x="0" y="${node.size + 16}" text-anchor="middle" font-size="11" fill="#1a7a3a" font-family="Nunito" font-weight="900">✅</text>` : ''}
-        ${canClaim ? `<text x="0" y="${node.size + 16}" text-anchor="middle" font-size="10" fill="#b8860b" font-family="Nunito" font-weight="900">¡Toca! ${node.reward?.icon}</text>` : ''}
-        ${!reached ? `<text x="0" y="${node.size + 16}" text-anchor="middle" font-size="9" fill="#aaa" font-family="Nunito" font-weight="700">${node.id}</text>` : ''}
+        ${claimed   ? `<text x="0" y="${node.size + 18}" text-anchor="middle" font-size="12" fill="#1a7a3a" font-family="Nunito" font-weight="900">✅</text>` : ''}
+        ${canClaim  ? `<text x="0" y="${node.size + 18}" text-anchor="middle" font-size="11" fill="#b8860b" font-family="Nunito" font-weight="900">¡Toca! ${node.reward?.icon}</text>` : ''}
+        ${!reached  ? `<text x="0" y="${node.size + 18}" text-anchor="middle" font-size="10" fill="#ccc"    font-family="Nunito" font-weight="700">${node.id}</text>` : ''}
       </g>
     `;
   } else {
-    // Nodo normal — solo imagen patita, sin círculo
-    const opacity = reached ? (pawClaimed ? '0.5' : '1') : '0.25';
+    const opacity = reached ? (pawClaimed ? '0.45' : '1') : '0.2';
     const filter  = reached && !pawClaimed
-      ? 'drop-shadow(0 2px 4px rgba(200,80,140,0.4))'
+      ? 'drop-shadow(0 2px 5px rgba(200,80,140,0.5))'
       : 'none';
 
     return `
@@ -125,8 +132,8 @@ function renderNode(node, currentNode, claimedJourney, claimedPaws) {
           opacity="${opacity}"
           style="filter:${filter}"/>
 
-        ${pawClaimed ? `<text x="0" y="${node.size + 12}" text-anchor="middle" font-size="9" fill="#1a7a3a" font-family="Nunito" font-weight="800">+1 ✅</text>` : ''}
-        ${canClaimPaw ? `<text x="0" y="${node.size + 12}" text-anchor="middle" font-size="9" fill="#d63d7a" font-family="Nunito" font-weight="800">+1 🪙</text>` : ''}
+        ${pawClaimed  ? `<text x="0" y="${node.size + 13}" text-anchor="middle" font-size="10" fill="#1a7a3a" font-family="Nunito" font-weight="800">✅</text>` : ''}
+        ${canClaimPaw ? `<text x="0" y="${node.size + 13}" text-anchor="middle" font-size="10" fill="#d63d7a" font-family="Nunito" font-weight="800">+1 🪙</text>` : ''}
       </g>
     `;
   }
@@ -139,67 +146,75 @@ export function renderJourneyScreen(totalDonated, claimedJourney, claimedPaws, o
   const screen = document.getElementById('journey-fullscreen');
   if (!screen) return;
 
-  const nodes       = buildNodes();
+  // Usar el ancho real de la pantalla para el SVG
+  const vw          = Math.min(window.innerWidth, 480); // máximo 480 en desktop
+  const nodes       = buildNodes(vw);
   const currentNode = Math.min(Math.floor(totalDonated / COINS_PER_NODE), TOTAL_NODES);
   const totalHeight = 3100;
-  const svgWidth    = 320;
 
   screen.innerHTML = `
     <header class="journey-header">
       <button class="btn-back" id="btn-back-journey">← Volver</button>
       <div class="journey-header-info">
         <div class="journey-title">Camino de Patitas 🐾</div>
-        <div class="journey-progress">${currentNode} / ${TOTAL_NODES}</div>
+        <div class="journey-progress">${currentNode} / ${TOTAL_NODES} · ${totalDonated} 🪙 donadas</div>
       </div>
       <img src="assets/img/pusheen.gif" class="journey-pusheen-mini" alt="Pusheen">
     </header>
 
     <div class="journey-scroll" id="journey-scroll">
-      <svg width="${svgWidth}" height="${totalHeight}"
-           viewBox="0 0 ${svgWidth} ${totalHeight}"
-           class="journey-svg" id="journey-svg">
+      <svg
+        width="100%"
+        height="${totalHeight}"
+        viewBox="0 0 ${vw} ${totalHeight}"
+        preserveAspectRatio="xMidYMid meet"
+        class="journey-svg"
+        id="journey-svg">
 
-        <!-- Fondo decorativo -->
         <defs>
-          <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stop-color="#fff8fc"/>
-            <stop offset="100%" stop-color="#fff0f5"/>
-          </radialGradient>
+          <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#fff0f5"/>
+            <stop offset="100%" stop-color="#fff8fc"/>
+          </linearGradient>
         </defs>
-        <rect width="${svgWidth}" height="${totalHeight}" fill="url(#bgGrad)"/>
+        <rect width="${vw}" height="${totalHeight}" fill="url(#bgGrad)"/>
 
-        <!-- Línea del camino -->
         ${buildPathLine(nodes)}
 
-        <!-- Punto de inicio -->
+        <!-- Inicio -->
         <image href="assets/img/pusheen.gif"
-          x="105" y="${totalHeight - 65}"
-          width="50" height="50"/>
-        <text x="130" y="${totalHeight - 10}"
-          text-anchor="middle" font-size="11"
+          x="${vw/2 - 28}" y="${totalHeight - 70}"
+          width="56" height="56"/>
+        <text x="${vw/2}" y="${totalHeight - 8}"
+          text-anchor="middle" font-size="12"
           fill="#d63d7a" font-family="Nunito" font-weight="900">¡Inicio! 🐾</text>
 
-        <!-- Nodos -->
         ${nodes.map(n => renderNode(n, currentNode, claimedJourney, claimedPaws)).join('')}
 
-        <!-- Meta final -->
-        <text x="${nodes[TOTAL_NODES-1].x}" y="${nodes[TOTAL_NODES-1].y - 50}"
-          text-anchor="middle" font-size="18">🏆</text>
-        <text x="${nodes[TOTAL_NODES-1].x}" y="${nodes[TOTAL_NODES-1].y - 30}"
-          text-anchor="middle" font-size="10"
+        <!-- Meta -->
+        <text x="${nodes[TOTAL_NODES-1].x}" y="${nodes[TOTAL_NODES-1].y - 55}"
+          text-anchor="middle" font-size="22">🏆</text>
+        <text x="${nodes[TOTAL_NODES-1].x}" y="${nodes[TOTAL_NODES-1].y - 32}"
+          text-anchor="middle" font-size="11"
           fill="#b8860b" font-family="Nunito" font-weight="900">¡Meta!</text>
 
       </svg>
     </div>
   `;
 
-  // Scroll hasta el nodo actual
+  // Scroll al nodo actual
   setTimeout(() => {
     const scrollEl = document.getElementById('journey-scroll');
-    if (!scrollEl || !nodes[currentNode - 1]) return;
-    const targetY = nodes[Math.max(0, currentNode - 1)].y;
-    scrollEl.scrollTop = Math.max(0, targetY - 300);
-  }, 150);
+    if (!scrollEl || currentNode < 1) return;
+    const n = nodes[currentNode - 1];
+    if (!n) return;
+    // Convertir coordenada SVG a pixel real
+    const svgEl   = document.getElementById('journey-svg');
+    const svgRect = svgEl?.getBoundingClientRect();
+    const scale   = svgRect ? svgRect.height / totalHeight : 1;
+    const targetPx = n.y * scale;
+    scrollEl.scrollTop = Math.max(0, targetPx - scrollEl.clientHeight / 2);
+  }, 200);
 
   // Botón volver
   document.getElementById('btn-back-journey').onclick = () => {
@@ -212,7 +227,6 @@ export function renderJourneyScreen(totalDonated, claimedJourney, claimedPaws, o
     if (!node) return;
     const nodeId = parseInt(node.dataset.node);
     const type   = node.dataset.type;
-
     if (type === 'reward' && node.classList.contains('can-claim')) {
       const reward = JOURNEY_REWARDS.find(r => r.node === nodeId);
       if (reward) onClaimReward(nodeId, reward);
@@ -224,7 +238,7 @@ export function renderJourneyScreen(totalDonated, claimedJourney, claimedPaws, o
 }
 
 // ==========================
-// MODAL RECOMPENSA DEL CAMINO
+// MODAL RECOMPENSA
 // ==========================
 export function showJourneyRewardModal(reward, wonVideo, spawnCoinsFn) {
   const existing = document.getElementById('journey-modal-overlay');
@@ -257,7 +271,6 @@ export function showJourneyRewardModal(reward, wonVideo, spawnCoinsFn) {
   document.body.appendChild(overlay);
   if (spawnCoinsFn) spawnCoinsFn(12);
 
-  // Confetti
   const confettiEl = document.getElementById('j-confetti');
   if (confettiEl) {
     const colors = ['#ff6fa8','#ffc94d','#ffaac9','#a8e6c0','#ff6b6b'];

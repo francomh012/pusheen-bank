@@ -28,8 +28,12 @@ let myStreak         = 0;
 let myTotalDonated   = 0;
 let myClaimedRewards = [];
 let myVideos         = [];
-let myClaimedJourney = []; // recompensas grandes canjeadas
-let myClaimedPaws    = []; // patitas pequeñas ya tocadas
+let myClaimedJourney = [];
+let myClaimedPaws    = [];
+
+// Cache para evitar parpadeo
+let lastRankingHTML  = '';
+let lastHistoryHTML  = '';
 
 // ==========================
 // DOM
@@ -168,7 +172,11 @@ window.handleCoin = async (action, amount = 1) => {
         if (sharedBank < 0) showMessage(`💀 ¡Pusheen en ${sharedBank} 🪙! ¡En deuda!`, 'debt');
     }
 
-    renderUI(); bumpBankNum(); updateNegativeStyles();
+    // Solo actualizar números — sin re-render del historial todavía
+    coinDisplay.textContent   = sharedBank;
+    walletDisplay.textContent = myWallet;
+    updateNegativeStyles();
+    bumpBankNum();
 
     if (action === 'add') {
         spawnCoins(6);
@@ -208,6 +216,9 @@ window.handleCoin = async (action, amount = 1) => {
             showMessage(`Robaste ${amount} moneda${amount > 1 ? 's' : ''}... ❌`, 'warning');
         }
 
+        // Actualizar historial sin parpadeo
+        renderHistorySmooth();
+        // Ranking solo si cambia algo relevante
         updateRankingUI();
         if (action === 'add') checkNewRewards();
         renderRewardsUI();
@@ -215,7 +226,9 @@ window.handleCoin = async (action, amount = 1) => {
     } catch (e) {
         myWallet = oldW; sharedBank = oldB; sharedHistory = oldH;
         myTotalDonated = oldTotalDonated;
-        renderUI(); updateNegativeStyles();
+        coinDisplay.textContent   = sharedBank;
+        walletDisplay.textContent = myWallet;
+        updateNegativeStyles();
         showMessage('Error al guardar. Intenta de nuevo 😿', 'error');
         console.error(e);
     } finally {
@@ -224,20 +237,29 @@ window.handleCoin = async (action, amount = 1) => {
 };
 
 // ==========================
-// RENDER
+// RENDER — sin parpadeo
 // ==========================
 function renderUI() {
     coinDisplay.textContent   = sharedBank;
     walletDisplay.textContent = myWallet;
     const gfHeader = document.getElementById('gf-wallet-header-num');
     if (gfHeader) gfHeader.textContent = myWallet + ' 🪙';
-    historyDiv.innerHTML = [...sharedHistory].reverse().slice(0, 6)
-        .map(m => `<div class="history-item">${m}</div>`).join('');
+    renderHistorySmooth();
     updateNegativeStyles();
 }
 
+// Historial: solo actualiza si el contenido cambió
+function renderHistorySmooth() {
+    const newHTML = [...sharedHistory].reverse().slice(0, 6)
+        .map(m => `<div class="history-item">${m}</div>`).join('');
+    if (newHTML !== lastHistoryHTML) {
+        lastHistoryHTML = newHTML;
+        historyDiv.innerHTML = newHTML;
+    }
+}
+
 // ==========================
-// RANKING
+// RANKING — sin parpadeo
 // ==========================
 async function updateRankingUI() {
     const { data: r, error } = await supabase.from('players')
@@ -249,17 +271,26 @@ async function updateRankingUI() {
     const heroLabel = document.getElementById('ranking-hero-label');
     if (r?.length && heroImg) {
         const cfg = RANKING_IMGS[r[0].username] || RANKING_IMGS.default;
-        heroImg.src = cfg.src;
-        heroLabel.textContent = cfg.label;
+        // Solo cambiar src si es diferente — evita parpadeo
+        if (heroImg.src !== cfg.src) heroImg.src = cfg.src;
+        if (heroLabel.textContent !== cfg.label) heroLabel.textContent = cfg.label;
     }
+
     const list = document.getElementById('ranking-list');
-    if (!r) return;
-    list.innerHTML = r.map((p, i) => `
-        <div class="ranking-item ${i === 0 ? 'first' : ''}" style="animation-delay:${i * 0.08}s">
+    if (!r || !list) return;
+
+    const newHTML = r.map((p, i) => `
+        <div class="ranking-item ${i === 0 ? 'first' : ''}">
             <span class="rank-pos">${i === 0 ? '👑' : i === 1 ? '🥈' : '🐾'}</span>
             <span class="rank-name">${AVATARS[p.username] || '🐾'} ${p.username}</span>
             <span class="rank-coins">${p.weekly_donations} 🪙</span>
         </div>`).join('');
+
+    // Solo re-renderizar si los datos cambiaron
+    if (newHTML !== lastRankingHTML) {
+        lastRankingHTML = newHTML;
+        list.innerHTML  = newHTML;
+    }
 }
 
 // ==========================
@@ -358,15 +389,11 @@ async function handleJourneyReward(nodeId, reward) {
 
     try {
         await supabase.from('players').update({
-            wallet_coins:    myWallet,
-            claimed_journey: myClaimedJourney,
-            videos:          myVideos,
+            wallet_coins: myWallet, claimed_journey: myClaimedJourney, videos: myVideos,
         }).eq('username', currentPlayer);
-
         renderUI();
         showJourneyRewardModal(reward, wonVideo, spawnCoins);
         refreshJourneyScreen();
-
     } catch (e) {
         myWallet -= reward.coins;
         myClaimedJourney = myClaimedJourney.filter(id => id !== nodeId);
@@ -385,7 +412,6 @@ async function handlePawClaim(nodeId) {
     myWallet += 1;
     myClaimedPaws = [...myClaimedPaws, nodeId];
 
-    // Toast rápido
     const toast = document.createElement('div');
     toast.className = 'paw-toast';
     toast.textContent = '+1 🪙 ¡Patita!';
@@ -394,13 +420,10 @@ async function handlePawClaim(nodeId) {
 
     try {
         await supabase.from('players').update({
-            wallet_coins:  myWallet,
-            claimed_paws:  myClaimedPaws,
+            wallet_coins: myWallet, claimed_paws: myClaimedPaws,
         }).eq('username', currentPlayer);
-
         renderUI();
         refreshJourneyScreen();
-
     } catch (e) {
         myWallet -= 1;
         myClaimedPaws = myClaimedPaws.filter(id => id !== nodeId);
@@ -408,7 +431,6 @@ async function handlePawClaim(nodeId) {
     }
 }
 
-// Re-renderizar la pantalla del camino si está activa
 function refreshJourneyScreen() {
     const screen = document.getElementById('journey-fullscreen');
     if (screen?.classList.contains('active')) {
@@ -417,7 +439,7 @@ function refreshJourneyScreen() {
 }
 
 // ==========================
-// MODAL RECOMPENSA (tab premios)
+// MODAL RECOMPENSA
 // ==========================
 function showRewardModal(reward, wonVideo = null) {
     document.getElementById('reward-modal-title').textContent = `${reward.icon} ¡${reward.title}!`;
@@ -630,17 +652,19 @@ async function loadData(name) {
     supabase.channel('db-changes')
         .on('postgres_changes', { event:'UPDATE', schema:'public', table:'bank' }, (p) => {
             sharedBank = p.new.total_coins; sharedHistory = p.new.history;
-            renderUI(); bumpBankNum();
+            // Solo actualizar números si no es mi propia acción
+            if (!isSaving) { renderUI(); bumpBankNum(); }
         })
-        .on('postgres_changes', { event:'UPDATE', schema:'public', table:'players' }, () => updateRankingUI())
-        .on('postgres_changes', { event:'*',      schema:'public', table:'complaints' }, () => loadComplaints())
+        .on('postgres_changes', { event:'UPDATE', schema:'public', table:'players' }, () => {
+            if (!isSaving) updateRankingUI();
+        })
+        .on('postgres_changes', { event:'*', schema:'public', table:'complaints' }, () => loadComplaints())
         .subscribe();
 
     document.getElementById('login-screen').classList.remove('active');
     document.getElementById('game-screen').classList.add('active');
     renderUI(); updateRankingUI(); renderRewardsUI(); updateBackpackBadge();
 
-    // Tab camino — abre pantalla fullscreen al tocar
     document.querySelector('[data-tab="journey"]')?.addEventListener('click', () => {
         const screen = document.getElementById('journey-fullscreen');
         if (screen) {
@@ -673,6 +697,7 @@ document.getElementById('jess-btn').onclick   = () => loadData('Jess');
 document.getElementById('logout-btn').onclick  = () => {
     currentPlayer = null; myWallet = 0; myStreak = 0; myTotalDonated = 0;
     myClaimedRewards = []; myVideos = []; myClaimedJourney = []; myClaimedPaws = [];
+    lastRankingHTML = ''; lastHistoryHTML = '';
     document.getElementById('game-screen').classList.remove('active');
     document.getElementById('login-screen').classList.add('active');
 };
