@@ -3,93 +3,87 @@
    Agregar al final de main.css
 ============================== */
 
-/* Wrapper principal */
-.journey-wrap {
-  display: flex;
+/* Pantalla completa del camino */
+.journey-fullscreen {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: #fff0f5;
+  z-index: 20;
   flex-direction: column;
-  gap: 0;
-  padding-bottom: 40px;
+  overflow: hidden;
 }
+.journey-fullscreen.active { display: flex; }
 
-/* Header del camino */
+/* Header */
 .journey-header {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 16px 20px 12px;
+  justify-content: space-between;
+  padding: 14px 20px 12px;
   background: var(--white);
   border-bottom: 2px solid var(--pink-soft);
-  position: sticky;
-  top: 0;
-  z-index: 5;
+  box-shadow: 0 2px 12px rgba(200,80,140,0.08);
+  flex-shrink: 0;
 }
-.journey-pusheen {
-  width: 56px;
-  height: 56px;
-  object-fit: contain;
-  animation: float 3s ease-in-out infinite;
-  filter: drop-shadow(0 3px 8px rgba(200,80,140,0.2));
+.journey-header-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
 }
 .journey-title {
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 900;
   color: var(--pink-deep);
 }
 .journey-progress {
-  font-size: 0.88rem;
-  font-weight: 800;
-  color: var(--text-mid);
-}
-.journey-donated {
   font-size: 0.78rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-soft);
 }
+.journey-pusheen-mini {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  animation: float 3s ease-in-out infinite;
+}
 
-/* Scroll del camino */
+/* Scroll del SVG */
 .journey-scroll {
+  flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  max-height: calc(100vh - 280px);
-  background: linear-gradient(180deg, #fff8fc 0%, #fff0f5 100%);
-  padding: 20px 0;
   display: flex;
   justify-content: center;
+  background: linear-gradient(180deg, #fff8fc 0%, #fff0f5 100%);
+  -webkit-overflow-scrolling: touch;
 }
 
-/* SVG del camino */
 .journey-svg {
   display: block;
-  margin: 0 auto;
+  touch-action: pan-y;
 }
 
-/* Botón canjear dentro del SVG */
-.journey-reward-btn {
-  background: var(--pink-main);
-  color: white;
-  border: none;
-  border-radius: 999px;
-  padding: 3px 8px;
-  font-family: 'Nunito', sans-serif;
-  font-size: 9px;
-  font-weight: 900;
-  cursor: pointer;
-  width: 100%;
-  white-space: nowrap;
-  transition: all 0.15s;
+/* Animación hover en nodos clickeables */
+.journey-node.can-claim image,
+.journey-node.can-claim-paw image {
+  transition: transform 0.15s;
 }
-.journey-reward-btn:active {
-  transform: scale(0.94);
-  background: var(--pink-deep);
+.journey-node.can-claim:active image,
+.journey-node.can-claim-paw:active image {
+  transform: scale(0.9);
 }
 
-/* Modal de recompensa del camino */
+/* ==============================
+   MODAL DE RECOMPENSA DEL CAMINO
+============================== */
 .journey-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(60,10,40,0.5);
+  background: rgba(60,10,40,0.55);
   backdrop-filter: blur(3px);
-  z-index: 70;
+  z-index: 80;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -111,32 +105,51 @@
   position: relative;
   overflow: hidden;
 }
-.journey-modal-icon  { font-size: 3rem; }
+.journey-confetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.journey-modal-icon  { font-size: 3rem; line-height: 1; }
 .journey-modal-title { font-size: 1.3rem; font-weight: 900; color: var(--pink-deep); text-align: center; }
 .journey-modal-desc  { font-size: 0.9rem; font-weight: 700; color: var(--text-mid); text-align: center; }
 .journey-modal-coins {
   font-size: 1.5rem; font-weight: 900; color: var(--gold-deep);
   background: #fffbe6; border: 2px solid var(--gold);
-  border-radius: 999px; padding: 8px 24px;
+  border-radius: 999px; padding: 8px 28px;
 }
 .journey-modal-video {
   width: 100%; border-radius: var(--radius-md);
   overflow: hidden; box-shadow: var(--shadow);
 }
-.journey-modal-video iframe {
-  width: 100%; height: 180px; border: none;
-}
+.journey-modal-video iframe { width: 100%; height: 180px; border: none; }
 .journey-modal-btn {
   background: linear-gradient(135deg, var(--gold), #ffb300);
   color: var(--gold-deep); border: none; border-radius: 999px;
   padding: 13px 40px; font-family: 'Nunito', sans-serif;
   font-size: 1rem; font-weight: 900; cursor: pointer;
-  transition: all 0.15s; box-shadow: var(--shadow);
+  transition: all 0.15s; box-shadow: var(--shadow); margin-top: 4px;
 }
 .journey-modal-btn:active { transform: scale(0.95); }
 
-/* Confetti del camino */
-.journey-confetti {
-  position: absolute; inset: 0;
-  pointer-events: none; overflow: hidden;
+/* Toast de +1 moneda al tocar patita */
+.paw-toast {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--pink-main);
+  color: white;
+  border-radius: 999px;
+  padding: 8px 20px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 900;
+  z-index: 90;
+  pointer-events: none;
+  animation: fadeSlide 0.3s ease, fadeOut 0.4s ease 1.2s forwards;
+}
+@keyframes fadeOut {
+  to { opacity: 0; transform: translateX(-50%) translateY(-10px); }
 }

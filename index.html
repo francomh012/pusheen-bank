@@ -106,7 +106,7 @@
   <!-- TABS — solo iconos -->
   <div class="tabs">
     <button class="tab active" data-tab="ranking"    title="Ranking">🏆</button>
-    <button class="tab"        data-tab="journey"    title="Camino">🐾</button>
+    <button class="tab"        data-tab="journey"    title="Camino de Patitas">🐾</button>
     <button class="tab"        data-tab="games"      title="Juegos">🎮</button>
     <button class="tab"        data-tab="rewards"    title="Recompensas">🎁</button>
     <button class="tab"        data-tab="history"    title="Historial">📜</button>
@@ -121,10 +121,9 @@
     <div id="ranking-list" class="ranking-list"></div>
   </section>
 
-  <!-- TAB CAMINO DE PATITAS -->
+  <!-- Tab camino — vacío, abre pantalla fullscreen -->
   <section id="tab-journey" class="tab-content"></section>
-
-  <section id="tab-games" class="tab-content"></section>
+  <section id="tab-games"   class="tab-content"></section>
 
   <section id="tab-rewards" class="tab-content">
     <div class="rewards-header">
@@ -184,7 +183,10 @@
 
 </div>
 
-<!-- ===== PANTALLA COMPLETA DE JUEGO ===== -->
+<!-- ===== PANTALLA COMPLETA — CAMINO DE PATITAS ===== -->
+<div id="journey-fullscreen" class="journey-fullscreen"></div>
+
+<!-- ===== PANTALLA COMPLETA — JUEGO ===== -->
 <div id="game-fullscreen" class="game-fullscreen">
   <header class="game-fullscreen-header">
     <button class="btn-back" id="btn-back-game">← Menú</button>
@@ -268,8 +270,10 @@
   document.getElementById('install-dismiss').onclick = () => document.getElementById('install-banner').style.display = 'none';
   window.addEventListener('appinstalled', () => document.getElementById('install-banner').style.display = 'none');
 
+  // Tabs — el camino 🐾 abre fullscreen, los demás funcionan normal
   document.querySelectorAll('.tab').forEach(tab => {
     tab.addEventListener('click', () => {
+      if (tab.dataset.tab === 'journey') return; // lo maneja main.js
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
       tab.classList.add('active');
@@ -325,10 +329,10 @@
   window.spawnCoins = function(count=6) {
     const c = document.getElementById('coin-particles'); if(!c) return;
     for(let i=0; i<count; i++){
-      const coin = document.createElement('span'); coin.textContent = '🪙'; coin.className = 'coin-particle';
-      coin.style.left = (25+Math.random()*50)+'%'; coin.style.animationDelay = (Math.random()*0.4)+'s';
-      coin.style.fontSize = (14+Math.random()*10)+'px'; c.appendChild(coin);
-      setTimeout(()=>coin.remove(), 1400);
+      const coin = document.createElement('span'); coin.textContent='🪙'; coin.className='coin-particle';
+      coin.style.left=(25+Math.random()*50)+'%'; coin.style.animationDelay=(Math.random()*0.4)+'s';
+      coin.style.fontSize=(14+Math.random()*10)+'px'; c.appendChild(coin);
+      setTimeout(()=>coin.remove(),1400);
     }
   };
 </script>

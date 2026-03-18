@@ -4,7 +4,7 @@
 
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 import { renderGamesTab } from './games.js';
-import { renderJourneyTab } from './journey.js';
+import { renderJourneyScreen, showJourneyRewardModal } from './journey.js';
 import {
   SUPABASE_URL, SUPABASE_KEY,
   AVATARS, RANKING_IMGS,
@@ -18,17 +18,18 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 // ==========================
 // ESTADO GLOBAL
 // ==========================
-let currentPlayer         = null;
-let myWallet              = 0;
-let sharedBank            = 0;
-let sharedHistory         = [];
-let isSaving              = false;
-let allComplaints         = [];
-let myStreak              = 0;
-let myTotalDonated        = 0;
-let myClaimedRewards      = [];
-let myVideos              = [];
-let myClaimedJourney      = []; // IDs de nodos del camino ya canjeados
+let currentPlayer    = null;
+let myWallet         = 0;
+let sharedBank       = 0;
+let sharedHistory    = [];
+let isSaving         = false;
+let allComplaints    = [];
+let myStreak         = 0;
+let myTotalDonated   = 0;
+let myClaimedRewards = [];
+let myVideos         = [];
+let myClaimedJourney = []; // recompensas grandes canjeadas
+let myClaimedPaws    = []; // patitas pequeñas ya tocadas
 
 // ==========================
 // DOM
@@ -208,13 +209,7 @@ window.handleCoin = async (action, amount = 1) => {
         }
 
         updateRankingUI();
-        if (action === 'add') {
-            checkNewRewards();
-            // Actualizar camino si está visible
-            if (document.getElementById('tab-journey')?.classList.contains('active')) {
-                renderJourneyTab(myTotalDonated, myClaimedJourney, handleJourneyReward);
-            }
-        }
+        if (action === 'add') checkNewRewards();
         renderRewardsUI();
 
     } catch (e) {
@@ -257,7 +252,6 @@ async function updateRankingUI() {
         heroImg.src = cfg.src;
         heroLabel.textContent = cfg.label;
     }
-
     const list = document.getElementById('ranking-list');
     if (!r) return;
     list.innerHTML = r.map((p, i) => `
@@ -345,7 +339,7 @@ window.claimReward = async (rewardId, type) => {
 };
 
 // ==========================
-// CAMINO DE PATITAS — canjear
+// CAMINO — recompensa grande
 // ==========================
 async function handleJourneyReward(nodeId, reward) {
     if (myClaimedJourney.includes(nodeId)) return;
@@ -353,7 +347,6 @@ async function handleJourneyReward(nodeId, reward) {
     myWallet += reward.coins;
     myClaimedJourney = [...myClaimedJourney, nodeId];
 
-    // ¿Sale video? Probabilidad aleatoria
     const showVideo = Math.random() < VIDEO_PROBABILITY;
     let wonVideo = null;
     if (showVideo) {
@@ -365,16 +358,14 @@ async function handleJourneyReward(nodeId, reward) {
 
     try {
         await supabase.from('players').update({
-            wallet_coins:      myWallet,
-            claimed_journey:   myClaimedJourney,
-            videos:            myVideos,
+            wallet_coins:    myWallet,
+            claimed_journey: myClaimedJourney,
+            videos:          myVideos,
         }).eq('username', currentPlayer);
 
         renderUI();
-        showJourneyRewardModal(reward, wonVideo);
-        spawnCoins(10);
-        // Rerenderizar camino
-        renderJourneyTab(myTotalDonated, myClaimedJourney, handleJourneyReward);
+        showJourneyRewardModal(reward, wonVideo, spawnCoins);
+        refreshJourneyScreen();
 
     } catch (e) {
         myWallet -= reward.coins;
@@ -385,54 +376,44 @@ async function handleJourneyReward(nodeId, reward) {
     }
 }
 
-function showJourneyRewardModal(reward, wonVideo = null) {
-    // Crear modal dinámico
-    const existing = document.getElementById('journey-modal-overlay');
-    if (existing) existing.remove();
+// ==========================
+// CAMINO — patita pequeña da 1 moneda
+// ==========================
+async function handlePawClaim(nodeId) {
+    if (myClaimedPaws.includes(nodeId)) return;
 
-    const overlay = document.createElement('div');
-    overlay.id = 'journey-modal-overlay';
-    overlay.className = 'journey-modal-overlay';
+    myWallet += 1;
+    myClaimedPaws = [...myClaimedPaws, nodeId];
 
-    const videoHTML = wonVideo ? `
-        <div class="journey-modal-video">
-            <iframe src="https://www.youtube-nocookie.com/embed/${wonVideo.id}?autoplay=1&mute=0&rel=0"
-                allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe>
-        </div>
-        <p style="font-size:0.78rem;font-weight:800;color:#1a7a3a;">✅ Video guardado en tu mochila 🎒</p>
-    ` : '';
+    // Toast rápido
+    const toast = document.createElement('div');
+    toast.className = 'paw-toast';
+    toast.textContent = '+1 🪙 ¡Patita!';
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 1700);
 
-    // Confetti
-    let confettiHTML = '<div class="journey-confetti" id="j-confetti"></div>';
+    try {
+        await supabase.from('players').update({
+            wallet_coins:  myWallet,
+            claimed_paws:  myClaimedPaws,
+        }).eq('username', currentPlayer);
 
-    overlay.innerHTML = `
-        <div class="journey-modal-box">
-            ${confettiHTML}
-            <div class="journey-modal-icon">${reward.icon}</div>
-            <h2 class="journey-modal-title">${reward.title}</h2>
-            <p class="journey-modal-desc">¡Llegaste al nodo ${reward.node}!</p>
-            <div class="journey-modal-coins">+${reward.coins} 🪙</div>
-            ${videoHTML}
-            <button class="journey-modal-btn" id="journey-modal-close-btn">¡Genial! 🐾</button>
-        </div>
-    `;
+        renderUI();
+        refreshJourneyScreen();
 
-    document.body.appendChild(overlay);
-
-    // Confetti
-    const confettiEl = document.getElementById('j-confetti');
-    if (confettiEl) {
-        const colors = ['#ff6fa8','#ffc94d','#ffaac9','#a8e6c0','#ff6b6b'];
-        for (let i = 0; i < 30; i++) {
-            const p = document.createElement('div');
-            p.className = 'confetti-piece';
-            p.style.cssText = `left:${Math.random()*100}%;background:${colors[Math.floor(Math.random()*colors.length)]};animation-duration:${1.2+Math.random()*1.2}s;animation-delay:${Math.random()*0.5}s;width:${6+Math.random()*6}px;height:${6+Math.random()*6}px;border-radius:${Math.random()>0.5?'50%':'2px'}`;
-            confettiEl.appendChild(p);
-        }
+    } catch (e) {
+        myWallet -= 1;
+        myClaimedPaws = myClaimedPaws.filter(id => id !== nodeId);
+        console.error(e);
     }
+}
 
-    document.getElementById('journey-modal-close-btn').onclick = () => overlay.remove();
-    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+// Re-renderizar la pantalla del camino si está activa
+function refreshJourneyScreen() {
+    const screen = document.getElementById('journey-fullscreen');
+    if (screen?.classList.contains('active')) {
+        renderJourneyScreen(myTotalDonated, myClaimedJourney, myClaimedPaws, handleJourneyReward, handlePawClaim);
+    }
 }
 
 // ==========================
@@ -569,21 +550,12 @@ document.getElementById('btn-submit-complaint').onclick = async () => {
         document.getElementById('complaint-form').style.display = 'none';
         document.getElementById('btn-new-complaint').style.display = 'block';
         showMessage('¡Denuncia enviada! 🚨','success','action-message');
-    } catch(e) {
-        showMessage('Error al enviar.','error','complaint-msg');
-        console.error(e);
-    } finally {
-        btn.disabled = false; btn.textContent = 'Enviar denuncia 🚨';
-    }
+    } catch(e) { showMessage('Error al enviar.','error','complaint-msg'); console.error(e); }
+    finally { btn.disabled = false; btn.textContent = 'Enviar denuncia 🚨'; }
 };
 
-window.resolveComplaint = async (id, status) => {
-    await supabase.from('complaints').update({ status }).eq('id', id);
-};
-window.deleteComplaint = async (id) => {
-    if (!confirm('¿Eliminar?')) return;
-    await supabase.from('complaints').delete().eq('id', id);
-};
+window.resolveComplaint = async (id, status) => { await supabase.from('complaints').update({ status }).eq('id', id); };
+window.deleteComplaint  = async (id) => { if (!confirm('¿Eliminar?')) return; await supabase.from('complaints').delete().eq('id', id); };
 
 // ==========================
 // NOTIFICACIONES IN-APP
@@ -632,20 +604,21 @@ async function loadData(name) {
 
     if (!u) {
         myWallet = 100; myStreak = 0; myTotalDonated = 0;
-        myClaimedRewards = []; myVideos = []; myClaimedJourney = [];
+        myClaimedRewards = []; myVideos = []; myClaimedJourney = []; myClaimedPaws = [];
         await supabase.from('players').insert([{
             username: name, wallet_coins: 100,
             last_claim: new Date().toISOString().split('T')[0],
-            weekly_donations: 0, total_donated: 0,
-            streak: 0, claimed_rewards: [], videos: [], claimed_journey: [],
+            weekly_donations: 0, total_donated: 0, streak: 0,
+            claimed_rewards: [], videos: [], claimed_journey: [], claimed_paws: [],
         }]);
     } else {
-        myWallet         = u.wallet_coins       ?? 100;
-        myStreak         = u.streak             ?? 0;
-        myTotalDonated   = u.total_donated      ?? 0;
-        myClaimedRewards = u.claimed_rewards    ?? [];
-        myVideos         = u.videos             ?? [];
-        myClaimedJourney = u.claimed_journey    ?? [];
+        myWallet         = u.wallet_coins      ?? 100;
+        myStreak         = u.streak            ?? 0;
+        myTotalDonated   = u.total_donated     ?? 0;
+        myClaimedRewards = u.claimed_rewards   ?? [];
+        myVideos         = u.videos            ?? [];
+        myClaimedJourney = u.claimed_journey   ?? [];
+        myClaimedPaws    = u.claimed_paws      ?? [];
         await checkDailyReward(u);
     }
 
@@ -653,7 +626,6 @@ async function loadData(name) {
     await loadComplaints();
 
     renderGamesTab(currentPlayer, myWallet, async (delta) => { await walletChange(delta); });
-    renderJourneyTab(myTotalDonated, myClaimedJourney, handleJourneyReward);
 
     supabase.channel('db-changes')
         .on('postgres_changes', { event:'UPDATE', schema:'public', table:'bank' }, (p) => {
@@ -667,6 +639,15 @@ async function loadData(name) {
     document.getElementById('login-screen').classList.remove('active');
     document.getElementById('game-screen').classList.add('active');
     renderUI(); updateRankingUI(); renderRewardsUI(); updateBackpackBadge();
+
+    // Tab camino — abre pantalla fullscreen al tocar
+    document.querySelector('[data-tab="journey"]')?.addEventListener('click', () => {
+        const screen = document.getElementById('journey-fullscreen');
+        if (screen) {
+            renderJourneyScreen(myTotalDonated, myClaimedJourney, myClaimedPaws, handleJourneyReward, handlePawClaim);
+            screen.classList.add('active');
+        }
+    });
 }
 
 async function checkDailyReward(user) {
@@ -691,7 +672,7 @@ document.getElementById('franco-btn').onclick = () => loadData('Franco');
 document.getElementById('jess-btn').onclick   = () => loadData('Jess');
 document.getElementById('logout-btn').onclick  = () => {
     currentPlayer = null; myWallet = 0; myStreak = 0; myTotalDonated = 0;
-    myClaimedRewards = []; myVideos = []; myClaimedJourney = [];
+    myClaimedRewards = []; myVideos = []; myClaimedJourney = []; myClaimedPaws = [];
     document.getElementById('game-screen').classList.remove('active');
     document.getElementById('login-screen').classList.add('active');
 };
