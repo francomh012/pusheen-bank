@@ -23,6 +23,7 @@ let myWallet         = 0;
 let sharedBank       = 0;
 let sharedHistory    = [];
 let isSaving         = false;
+let isMyOwnUpdate    = false; // ✅ bloquea eventos realtime propios
 let allComplaints    = [];
 let myStreak         = 0;
 let myTotalDonated   = 0;
@@ -31,7 +32,7 @@ let myVideos         = [];
 let myClaimedJourney = [];
 let myClaimedPaws    = [];
 
-// Cache para evitar parpadeo
+// Cache anti-parpadeo
 let lastRankingHTML  = '';
 let lastHistoryHTML  = '';
 
@@ -172,7 +173,6 @@ window.handleCoin = async (action, amount = 1) => {
         if (sharedBank < 0) showMessage(`💀 ¡Pusheen en ${sharedBank} 🪙! ¡En deuda!`, 'debt');
     }
 
-    // Solo actualizar números — sin re-render del historial todavía
     coinDisplay.textContent   = sharedBank;
     walletDisplay.textContent = myWallet;
     updateNegativeStyles();
@@ -186,7 +186,9 @@ window.handleCoin = async (action, amount = 1) => {
         if (img) { img.classList.add('shake'); setTimeout(() => img.classList.remove('shake'), 600); }
     }
 
-    isSaving = true; setActionButtons(true);
+    isSaving = true;
+    isMyOwnUpdate = true; // ✅ activar ANTES de guardar en Supabase
+    setActionButtons(true);
 
     try {
         const { data, error: fe } = await supabase.from('players')
@@ -216,9 +218,7 @@ window.handleCoin = async (action, amount = 1) => {
             showMessage(`Robaste ${amount} moneda${amount > 1 ? 's' : ''}... ❌`, 'warning');
         }
 
-        // Actualizar historial sin parpadeo
         renderHistorySmooth();
-        // Ranking solo si cambia algo relevante
         updateRankingUI();
         if (action === 'add') checkNewRewards();
         renderRewardsUI();
@@ -232,7 +232,10 @@ window.handleCoin = async (action, amount = 1) => {
         showMessage('Error al guardar. Intenta de nuevo 😿', 'error');
         console.error(e);
     } finally {
-        isSaving = false; setActionButtons(false);
+        isSaving = false;
+        setActionButtons(false);
+        // ✅ Apagar con delay — el evento realtime llega ~300-600ms después
+        setTimeout(() => { isMyOwnUpdate = false; }, 1500);
     }
 };
 
@@ -248,7 +251,6 @@ function renderUI() {
     updateNegativeStyles();
 }
 
-// Historial: solo actualiza si el contenido cambió
 function renderHistorySmooth() {
     const newHTML = [...sharedHistory].reverse().slice(0, 6)
         .map(m => `<div class="history-item">${m}</div>`).join('');
@@ -271,8 +273,7 @@ async function updateRankingUI() {
     const heroLabel = document.getElementById('ranking-hero-label');
     if (r?.length && heroImg) {
         const cfg = RANKING_IMGS[r[0].username] || RANKING_IMGS.default;
-        // Solo cambiar src si es diferente — evita parpadeo
-        if (heroImg.src !== cfg.src) heroImg.src = cfg.src;
+        if (!heroImg.src.endsWith(cfg.src.split('/').pop())) heroImg.src = cfg.src;
         if (heroLabel.textContent !== cfg.label) heroLabel.textContent = cfg.label;
     }
 
@@ -286,7 +287,6 @@ async function updateRankingUI() {
             <span class="rank-coins">${p.weekly_donations} 🪙</span>
         </div>`).join('');
 
-    // Solo re-renderizar si los datos cambiaron
     if (newHTML !== lastRankingHTML) {
         lastRankingHTML = newHTML;
         list.innerHTML  = newHTML;
@@ -374,7 +374,6 @@ window.claimReward = async (rewardId, type) => {
 // ==========================
 async function handleJourneyReward(nodeId, reward) {
     if (myClaimedJourney.includes(nodeId)) return;
-
     myWallet += reward.coins;
     myClaimedJourney = [...myClaimedJourney, nodeId];
 
@@ -404,11 +403,10 @@ async function handleJourneyReward(nodeId, reward) {
 }
 
 // ==========================
-// CAMINO — patita pequeña da 1 moneda
+// CAMINO — patita pequeña
 // ==========================
 async function handlePawClaim(nodeId) {
     if (myClaimedPaws.includes(nodeId)) return;
-
     myWallet += 1;
     myClaimedPaws = [...myClaimedPaws, nodeId];
 
@@ -651,12 +649,17 @@ async function loadData(name) {
 
     supabase.channel('db-changes')
         .on('postgres_changes', { event:'UPDATE', schema:'public', table:'bank' }, (p) => {
-            sharedBank = p.new.total_coins; sharedHistory = p.new.history;
-            // Solo actualizar números si no es mi propia acción
-            if (!isSaving) { renderUI(); bumpBankNum(); }
+            // ✅ Ignorar si es mi propio update — evita parpadeo
+            if (isMyOwnUpdate) return;
+            sharedBank = p.new.total_coins;
+            sharedHistory = p.new.history;
+            renderUI(); bumpBankNum();
         })
-        .on('postgres_changes', { event:'UPDATE', schema:'public', table:'players' }, () => {
-            if (!isSaving) updateRankingUI();
+        .on('postgres_changes', { event:'UPDATE', schema:'public', table:'players' }, (p) => {
+            // ✅ Ignorar mi propio update y mis propios cambios de perfil
+            if (isMyOwnUpdate) return;
+            if (p.new?.username === currentPlayer) return;
+            updateRankingUI();
         })
         .on('postgres_changes', { event:'*', schema:'public', table:'complaints' }, () => loadComplaints())
         .subscribe();
@@ -698,6 +701,7 @@ document.getElementById('logout-btn').onclick  = () => {
     currentPlayer = null; myWallet = 0; myStreak = 0; myTotalDonated = 0;
     myClaimedRewards = []; myVideos = []; myClaimedJourney = []; myClaimedPaws = [];
     lastRankingHTML = ''; lastHistoryHTML = '';
+    isMyOwnUpdate = false;
     document.getElementById('game-screen').classList.remove('active');
     document.getElementById('login-screen').classList.add('active');
 };
