@@ -218,3 +218,51 @@
 }
 /* Ocultar texto de tabs, dejar solo emoji */
 .tabs .tab .tab-label { display: none; }
+/* ==============================
+   FIX CANVAS HEIGHT — agregar al final de games.css
+============================== */
+
+/* El contenedor fullscreen del juego debe ser flex column con altura fija */
+.game-fullscreen {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: #fff0f5;
+  flex-direction: column;
+  overflow: hidden;
+}
+.game-fullscreen.active { display: flex; }
+
+/* El header ocupa lo que necesita */
+.game-fullscreen-header {
+  flex-shrink: 0;
+}
+
+/* El contenido ocupa TODO el espacio restante, sin scroll */
+.game-fullscreen-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;   /* ← clave: sin esto el canvas crece infinito */
+  min-height: 0;      /* ← necesario para que flex:1 funcione en iOS */
+}
+
+/* El wrap del canvas llena el contenido */
+.flappy-game-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+  position: relative;
+}
+
+/* El canvas llena el wrap */
+#flappy-canvas {
+  flex: 1;
+  display: block;
+  width: 100% !important;
+  min-height: 0;
+  touch-action: none;
+}
