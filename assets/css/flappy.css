@@ -1,0 +1,224 @@
+/* ==============================
+   FLAPPY GLOBO 🎈
+   Agregar al final de games.css
+============================== */
+
+/* Tarjeta en el selector de juegos */
+.flappy-card { border-color: #ffc94d !important; }
+.flappy-card:hover { background: #fffbe6 !important; }
+
+/* Sección personajes */
+.flappy-char-section {
+  width: 100%;
+  padding: 0 4px;
+}
+.flappy-char-title {
+  font-size: 0.95rem;
+  font-weight: 900;
+  color: var(--pink-deep);
+  text-align: center;
+  margin-bottom: 12px;
+}
+.flappy-char-grid {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.flappy-char-card {
+  background: var(--white);
+  border: 2.5px solid var(--pink-soft);
+  border-radius: var(--radius-lg);
+  padding: 12px 10px;
+  width: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+.flappy-char-card.selected {
+  border-color: var(--gold);
+  background: #fffbe6;
+  box-shadow: 0 0 0 3px rgba(255,201,77,0.3);
+}
+.flappy-char-card.locked {
+  opacity: 0.75;
+}
+.flappy-char-card:active { transform: scale(0.96); }
+
+.flappy-char-img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+}
+.flappy-char-name {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--text-mid);
+  text-align: center;
+}
+.flappy-char-status {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-soft);
+  text-align: center;
+}
+.flappy-char-status.active {
+  color: #1a7a3a;
+  font-weight: 900;
+}
+.flappy-char-buy {
+  background: var(--pink-main);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 5px 8px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition: all 0.15s;
+  width: 100%;
+}
+.flappy-char-buy:active { transform: scale(0.95); background: var(--pink-deep); }
+
+/* Récord */
+.flappy-record-wrap {
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-mid);
+  margin-bottom: 10px;
+}
+
+/* Ranking */
+.flappy-ranking {
+  background: var(--pink-light);
+  border-radius: var(--radius-lg);
+  padding: 12px 16px;
+  width: 100%;
+  margin-bottom: 16px;
+}
+.flappy-ranking-title {
+  font-size: 0.85rem;
+  font-weight: 900;
+  color: var(--pink-deep);
+  margin-bottom: 8px;
+  text-align: center;
+}
+.flappy-ranking-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-mid);
+  border-bottom: 1px solid var(--pink-soft);
+}
+.flappy-ranking-row:last-child { border-bottom: none; }
+.flappy-ranking-row.me { color: var(--pink-deep); font-weight: 900; }
+
+.flappy-play-btn { margin-top: 4px; }
+
+/* ==============================
+   PANTALLA DEL JUEGO
+============================== */
+.flappy-game-wrap {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #b8e4ff;
+}
+
+#flappy-canvas {
+  display: block;
+  width: 100%;
+  flex: 1;
+  touch-action: none;
+}
+
+/* HUD puntuación */
+.flappy-hud {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background: rgba(255,255,255,0.85);
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--pink-deep);
+  flex-shrink: 0;
+}
+#flappy-score-display {
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: var(--gold-deep);
+}
+
+/* Overlay inicio / game over */
+.flappy-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(60,10,40,0.45);
+  backdrop-filter: blur(2px);
+  z-index: 5;
+}
+.flappy-overlay-box {
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  padding: 28px 28px 24px;
+  text-align: center;
+  box-shadow: 0 8px 40px rgba(200,80,140,0.25);
+  border: 3px solid var(--pink-soft);
+  animation: popIn 0.3s cubic-bezier(.34,1.56,.64,1);
+  max-width: 280px;
+  width: 90%;
+}
+.flappy-overlay-title {
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: var(--pink-deep);
+  margin-bottom: 6px;
+}
+.flappy-overlay-sub {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-soft);
+  margin-bottom: 8px;
+}
+.flappy-overlay-score {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-mid);
+  line-height: 1.6;
+}
+
+/* Botón volver en el juego */
+.btn-back-flappy {
+  background: var(--white);
+  border: 2px solid var(--pink-soft);
+  border-radius: 999px;
+  padding: 10px 20px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--text-mid);
+  cursor: pointer;
+  margin: 10px auto 6px;
+  display: block;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.btn-back-flappy:active { background: var(--pink-light); }
