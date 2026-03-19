@@ -222,3 +222,17 @@
   flex-shrink: 0;
 }
 .btn-back-flappy:active { background: var(--pink-light); }
+/* ==============================
+   TARJETAS DE JUEGOS NUEVOS
+   Agregar al final de flappy.css
+============================== */
+.storm-card  { border-color: #6666ff !important; }
+.storm-card:hover  { background: #f0f0ff !important; }
+.sniper-card { border-color: #ff4444 !important; }
+.sniper-card:hover { background: #fff0f0 !important; }
+.wind-card   { border-color: #44aaff !important; }
+.wind-card:hover   { background: #f0f8ff !important; }
+
+.storm-card  .game-select-icon { filter: drop-shadow(0 0 6px #6666ff); }
+.sniper-card .game-select-icon { filter: drop-shadow(0 0 6px #ff4444); }
+.wind-card   .game-select-icon { filter: drop-shadow(0 0 6px #44aaff); }
