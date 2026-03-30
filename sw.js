@@ -2,23 +2,31 @@
 // SERVICE WORKER — Pusheen Bank 🐾
 // ================================
 
-const CACHE_NAME = 'pusheen-bank-v4'; // ← subí la versión para limpiar caché vieja
+const CACHE_NAME = 'pusheen-bank-v5';
 
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/assets/css/main.css',
   '/assets/css/games.css',
+  '/assets/css/journey.css',
+  '/assets/css/flappy.css',
   '/assets/js/main.js',
   '/assets/js/games.js',
   '/assets/js/config.js',
-  '/assets/js/notifications.js',
+  '/assets/js/rewards.js',
+  '/assets/js/journey.js',
+  '/assets/js/supabase-client.js',
   '/assets/img/pusheen.gif',
   '/assets/img/amigos.png',
   '/assets/img/corona1.png',
   '/assets/img/corona2.png',
   '/assets/img/juez.png',
   '/assets/img/icon.png',
+  '/assets/img/patita.png',
+  '/assets/img/globo1.gif',
+  '/assets/img/globo2.gif',
+  '/assets/img/avion1.gif',
   '/manifest.json',
 ];
 
@@ -70,7 +78,6 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        // ✅ Clonar ANTES de usar — fix del error "body already used"
         if (
           response &&
           response.status === 200 &&
@@ -94,7 +101,7 @@ self.addEventListener('fetch', event => {
 });
 
 // ==========================
-// 🔔 PUSH — recibir notificación
+// PUSH
 // ==========================
 self.addEventListener('push', event => {
   if (!event.data) return;

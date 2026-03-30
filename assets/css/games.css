@@ -47,7 +47,7 @@
     radial-gradient(circle at 80% 90%, #ffaac940 0%, transparent 50%);
   z-index: 20;
   flex-direction: column;
-  overflow-y: auto;
+  overflow: hidden;
 }
 .game-fullscreen.active { display: flex; }
 
@@ -58,6 +58,7 @@
   background: var(--white); border-bottom: 2px solid var(--pink-soft);
   position: sticky; top: 0; z-index: 10;
   box-shadow: 0 2px 12px rgba(200,80,140,0.08);
+  flex-shrink: 0;
 }
 .game-fullscreen-title {
   font-size: 1.1rem; font-weight: 900; color: var(--pink-deep);
@@ -77,11 +78,19 @@
 }
 .btn-back:active { background: var(--pink-soft); transform: scale(0.95); }
 
-/* Contenido del juego */
+/* Contenido del juego — ocupa todo el espacio restante sin scroll */
 .game-fullscreen-content {
-  flex: 1; padding: 24px 20px 40px;
-  display: flex; flex-direction: column; gap: 20px;
-  align-items: center; max-width: 480px; margin: 0 auto; width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+  padding: 24px 20px 40px;
+  gap: 20px;
+  align-items: center;
+  max-width: 480px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 /* Wallet dentro del juego */
@@ -216,53 +225,4 @@
   padding: 10px 4px;
   line-height: 1;
 }
-/* Ocultar texto de tabs, dejar solo emoji */
 .tabs .tab .tab-label { display: none; }
-/* ==============================
-   FIX CANVAS HEIGHT — agregar al final de games.css
-============================== */
-
-/* El contenedor fullscreen del juego debe ser flex column con altura fija */
-.game-fullscreen {
-  display: none;
-  position: fixed;
-  inset: 0;
-  z-index: 20;
-  background: #fff0f5;
-  flex-direction: column;
-  overflow: hidden;
-}
-.game-fullscreen.active { display: flex; }
-
-/* El header ocupa lo que necesita */
-.game-fullscreen-header {
-  flex-shrink: 0;
-}
-
-/* El contenido ocupa TODO el espacio restante, sin scroll */
-.game-fullscreen-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;   /* ← clave: sin esto el canvas crece infinito */
-  min-height: 0;      /* ← necesario para que flex:1 funcione en iOS */
-}
-
-/* El wrap del canvas llena el contenido */
-.flappy-game-wrap {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-height: 0;
-  position: relative;
-}
-
-/* El canvas llena el wrap */
-#flappy-canvas {
-  flex: 1;
-  display: block;
-  width: 100% !important;
-  min-height: 0;
-  touch-action: none;
-}
