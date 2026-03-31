@@ -176,7 +176,7 @@ function animatePusheenHappy() {
   if (!img) return;
   img.src = 'assets/img/pusheen_2.gif';
   img.classList.add('happy');
-  setTimeout(() => { img.src='assets/img/sentado1.png'; img.classList.remove('happy'); }, 1500);
+  setTimeout(() => { img.src='assets/img/pusheen_1.png'; img.classList.remove('happy'); }, 1500);
 }
 function animatePusheenSad() {
   const img = document.getElementById('pusheen-main-img');

@@ -112,7 +112,7 @@
       <div class="pusheen-wrap" id="pusheen-wrap">
         <img
           id="pusheen-main-img"
-          src="assets/img/sentado1.gif"
+          src="assets/img/pusheen_1.png"
           class="pusheen-main"
           alt="Pusheen"
           onerror="this.src='assets/img/pusheen.gif'"
@@ -199,7 +199,7 @@
   <!-- TAB: ESTADÍSTICAS Y LOGROS -->
   <section id="tab-stats" class="tab-content">
     <div class="stats-header">
-      <img src="assets/img/sentado1.gif" style="width:70px;height:70px;object-fit:contain;filter:drop-shadow(0 0 16px rgba(168,85,247,0.4));animation:float 3s ease-in-out infinite;" alt="Pusheen"
+      <img src="assets/img/pusheen_1.png" style="width:70px;height:70px;object-fit:contain;filter:drop-shadow(0 0 16px rgba(168,85,247,0.4));animation:float 3s ease-in-out infinite;" alt="Pusheen"
            onerror="this.src='assets/img/pusheen.gif'">
       <div class="stats-title">Tus Estadísticas 📊</div>
     </div>
@@ -435,7 +435,7 @@ function petPusheen() {
   // Volver a normal después de 2s
   clearTimeout(petTouchTimer);
   petTouchTimer = setTimeout(() => {
-    pusheenImg.src = 'assets/img/sentado1.png';
+    pusheenImg.src = 'assets/img/pusheen_1.png';
     pusheenImg.classList.remove('happy');
     if (bubble) bubble.style.display = 'none';
   }, 2000);
